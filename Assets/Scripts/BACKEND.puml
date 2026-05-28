@@ -1,0 +1,285 @@
+@startuml BACKEND
+
+skinparam classAttributeIconSize 0
+skinparam classFontName Courier
+skinparam classFontSize 12
+skinparam classHeaderBackgroundColor #D8D8F0
+skinparam classBorderColor #333333
+skinparam classBackgroundColor #FFFFFF
+skinparam interfaceBackgroundColor #E8F4E8
+skinparam interfaceBorderColor #336633
+skinparam arrowColor #333333
+skinparam arrowThickness 1.5
+skinparam linetype ortho
+
+title Backend — Factory Game UML (Unity)
+
+note as N1
+  <b>Pure C#</b>: Item 계열, FactoryStatus, EventBus,
+  GameEvent 계열, Snapshot 구조체, 인터페이스
+  <b>MonoBehaviour</b>: Machine 계열, BeltTrack,
+  ItemSpawner, SellManager, RoundManager, GameManager
+end note
+
+' ══════════════════════════════════════════════
+' INTERFACES
+' ══════════════════════════════════════════════
+
+interface IGameEventListener {
+  +onEvent(e: GameEvent): void
+}
+
+interface IManager {
+  +onEvent(e: GameEvent): void
+}
+
+interface IUpgradable {
+  +upgrade(stat: StatType, amount: float): void
+  +getStats(): Dict~StatType, float~
+}
+
+interface ISellable {
+  +calculatePrice(spMult: float): float
+  +getIsDefective(): bool
+}
+
+' ══════════════════════════════════════════════
+' EVENTS  (Pure C#)
+' ══════════════════════════════════════════════
+
+abstract class GameEvent {
+  +timestamp: float
+}
+
+class RoundEndEvent {
+  +avgAP: float
+  +passed: bool
+}
+
+class ItemSoldEvent {
+  +price: float
+  +isDefective: bool
+  +splendor: float
+}
+
+class MarketEvent {
+  +eventType: EventType
+}
+
+class BankruptcyEvent {
+  +barLevel: float
+}
+
+GameEvent <|-- RoundEndEvent
+GameEvent <|-- ItemSoldEvent
+GameEvent <|-- MarketEvent
+GameEvent <|-- BankruptcyEvent
+
+' ══════════════════════════════════════════════
+' EVENT BUS  (Pure C# singleton)
+' ══════════════════════════════════════════════
+
+class EventBus << (S,#FFD700) singleton >> {
+  ' DontDestroyOnLoad
+  -_instance: EventBus
+  -_listeners: List~IGameEventListener~
+  --
+  +getInstance(): EventBus
+  +subscribe(l: IGameEventListener): void
+  +unsubscribe(l: IGameEventListener): void
+  +publish(e: GameEvent): void
+}
+
+EventBus "1" o-- "0..*" IGameEventListener : _listeners
+EventBus ..> GameEvent : dispatches
+
+' ══════════════════════════════════════════════
+' ITEM  (Pure C#)
+' ══════════════════════════════════════════════
+
+abstract class Item {
+  ' Pure C#
+  #_attackPower: float
+  #_durability: float
+  #_splendor: float
+  #_isDefective: bool
+  --
+  +upgrade(stat: StatType, amount: float): void
+  +getStats(): Dict~StatType, float~
+  +calculatePrice(spMult: float): float
+  +calculateDefectChance(): float
+  +getIsDefective(): bool
+}
+
+Item ..|> IUpgradable
+Item ..|> ISellable
+
+' ══════════════════════════════════════════════
+' MACHINE  (MonoBehaviour)
+' ══════════════════════════════════════════════
+
+abstract class Machine << MonoBehaviour >> {
+  #_level: int
+  #_cooldown: float
+  #_upgradeAmount: float
+  --
+  +Update(): void
+  +levelUp(): void
+  +canCauseDefect(): bool
+  +getTargetStat(): StatType
+}
+
+class Grinder << MonoBehaviour >> {
+  +getTargetStat(): StatType
+  +canCauseDefect(): bool
+}
+
+class Welder << MonoBehaviour >> {
+  +getTargetStat(): StatType
+  +canCauseDefect(): bool
+}
+
+class Painter << MonoBehaviour >> {
+  +getTargetStat(): StatType
+  +canCauseDefect(): bool
+}
+
+Machine <|-- Grinder
+Machine <|-- Welder
+Machine <|-- Painter
+Machine ..> IUpgradable : <<use>> param
+
+' ══════════════════════════════════════════════
+' BELT TRACK  (MonoBehaviour)
+' ══════════════════════════════════════════════
+
+class BeltTrack << MonoBehaviour >> {
+  -_level: int
+  -_machineSpaces: int
+  -_speed: float
+  --
+  +Update(): void
+  +addItem(item: Item): void
+  +removeItem(item: Item): void
+  +getNearestItem(pos: float): Item
+  +levelUp(): void
+  +getMachineSpaces(): int
+}
+
+BeltTrack "1" *-- "0..*" Item : _items
+
+' ══════════════════════════════════════════════
+' ITEM SPAWNER  (MonoBehaviour)
+' ══════════════════════════════════════════════
+
+class ItemSpawner << MonoBehaviour >> {
+  ' Instantiate() 담당
+  -_baseAP: float
+  -_baseDU: float
+  -_baseSP: float
+  -_spawnInterval: float
+  -_itemPrefab: GameObject
+  --
+  +Update(): void
+  +shouldSpawn(): bool
+  +spawnItem(): void
+  +levelUp(): void
+}
+
+ItemSpawner "1" o-- "1" BeltTrack : _beltTrack
+ItemSpawner ..> Item : creates
+
+' ══════════════════════════════════════════════
+' FACTORY STATUS  (Pure C# singleton)
+' ══════════════════════════════════════════════
+
+class FactoryStatus << (S,#FFD700) singleton >> {
+  ' Pure C# singleton
+  -_instance: FactoryStatus
+  -_money: float
+  -_brandLevel: int
+  -_brandPoints: float
+  -_splendorMultiplier: float
+  -_bankruptcyBar: float
+  --
+  +getInstance(): FactoryStatus
+  +getMoney(): float
+  +modifyMoney(v: float): void
+  +getBrandLevel(): int
+  +addBrandPoints(sp: float): void
+  +getSplendorMultiplier(): float
+  +updateBankruptcyBar(delta: float): void
+  +isGameOver(): bool
+}
+
+' ══════════════════════════════════════════════
+' ROUND MANAGER  (MonoBehaviour + IManager)
+' ══════════════════════════════════════════════
+
+class RoundManager << MonoBehaviour >> {
+  -_roundNumber: int
+  -_apThreshold: float
+  -_checkInterval: float
+  -_bonus: float
+  -_penalty: float
+  --
+  +Start(): void
+  +Update(): void
+  +onEvent(e: GameEvent): void
+  +startRound(): void
+  +scaleNextRound(): void
+}
+
+RoundManager ..|> IManager
+RoundManager ..|> IGameEventListener
+RoundManager "1" o-- "1" EventBus      : _eventBus
+RoundManager "1" o-- "1" FactoryStatus : _status
+
+' ══════════════════════════════════════════════
+' SELL MANAGER  (MonoBehaviour + IManager)
+' ══════════════════════════════════════════════
+
+class SellManager << MonoBehaviour >> {
+  -_apMultiplier: float
+  -_spMultiplier: float
+  -_activeEvent: EventType
+  --
+  +Start(): void
+  +Update(): void
+  +onEvent(e: GameEvent): void
+  +sellItem(item: ISellable): void
+  +applyFine(item: ISellable): void
+}
+
+SellManager ..|> IManager
+SellManager ..|> IGameEventListener
+SellManager "1" o-- "1" EventBus      : _eventBus
+SellManager "1" o-- "1" FactoryStatus : _status
+SellManager  ..> ISellable : <<use>> param
+
+' ══════════════════════════════════════════════
+' GAME MANAGER  (MonoBehaviour)
+' ══════════════════════════════════════════════
+
+class GameManager << MonoBehaviour >> {
+  ' 씬 라이프사이클 및 IManager 조율
+  --
+  +Awake(): void
+  +Start(): void
+  +Update(): void
+  +onEvent(e: GameEvent): void
+  +startGame(): void
+  +pauseGame(): void
+  +resetGame(): void
+  +placeMachine(type: MachineType, pos: int): void
+  +levelUpMachine(pos: int): void
+  +removeMachine(pos: int): void
+  +levelUpBelt(): void
+}
+
+GameManager ..|> IGameEventListener
+GameManager "1" o-- "1"    EventBus      : _eventBus
+GameManager "1" o-- "1"    FactoryStatus : _status
+GameManager "1" o-- "1..*" IManager      : _managers
+
+@enduml
