@@ -43,7 +43,12 @@ unity -batchmode -quit -projectPath . -buildTarget StandaloneWindows64 -logFile 
 <!-- STRUCTURE: 에이전트가 초기화 후 아래에 실제 구조를 작성 -->
 
 ```
-(초기화 전 — 에이전트가 위 명령을 실행한 뒤 여기에 채워넣을 것)
+Assets/Scripts/Backend/EventBus.cs
+Assets/Scripts/Backend/GameEvent.cs
+Assets/Scripts/Backend/IGameEventListener.cs
+Assets/Scenes/BackEnd.unity
+Assets/Scenes/SampleScene.unity
+Assets/Scenes/SampleUIScene.unity
 ```
 
 <!-- /STRUCTURE -->
