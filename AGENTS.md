@@ -43,7 +43,34 @@ unity -batchmode -quit -projectPath . -buildTarget StandaloneWindows64 -logFile 
 <!-- STRUCTURE: 에이전트가 초기화 후 아래에 실제 구조를 작성 -->
 
 ```
-(초기화 전 — 에이전트가 위 명령을 실행한 뒤 여기에 채워넣을 것)
+Assets/Scenes/BackEnd.unity
+Assets/Scenes/SampleScene.unity
+Assets/Scenes/SampleUIScene.unity
+Assets/Scripts/Backend/BankruptcyEvent.cs
+Assets/Scripts/Backend/BeltTrack.cs
+Assets/Scripts/Backend/EventBus.cs
+Assets/Scripts/Backend/EventType.cs
+Assets/Scripts/Backend/FactoryStatus.cs
+Assets/Scripts/Backend/GameEvent.cs
+Assets/Scripts/Backend/GameManager.cs
+Assets/Scripts/Backend/Grinder.cs
+Assets/Scripts/Backend/IGameEventListener.cs
+Assets/Scripts/Backend/IManager.cs
+Assets/Scripts/Backend/ISellable.cs
+Assets/Scripts/Backend/Item.cs
+Assets/Scripts/Backend/ItemSoldEvent.cs
+Assets/Scripts/Backend/ItemSpawner.cs
+Assets/Scripts/Backend/IUpgradable.cs
+Assets/Scripts/Backend/Machine.cs
+Assets/Scripts/Backend/MachineType.cs
+Assets/Scripts/Backend/MarketEvent.cs
+Assets/Scripts/Backend/Painter.cs
+Assets/Scripts/Backend/RoundEndEvent.cs
+Assets/Scripts/Backend/RoundManager.cs
+Assets/Scripts/Backend/SellManager.cs
+Assets/Scripts/Backend/StandardItem.cs
+Assets/Scripts/Backend/StatType.cs
+Assets/Scripts/Backend/Welder.cs
 ```
 
 <!-- /STRUCTURE -->
