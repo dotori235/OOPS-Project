@@ -9,7 +9,7 @@ namespace Backend
 
         public override bool CanCauseDefect()
         {
-            return true;
+            return false;
         }
     }
 }

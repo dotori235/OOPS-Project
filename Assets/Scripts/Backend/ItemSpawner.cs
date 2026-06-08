@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Serialization;
 using UnityEngine;
 
 namespace Backend
@@ -8,7 +9,7 @@ namespace Backend
         [SerializeField] private GameObject _itemPrefab;
 
         [SerializeField] private float _baseAP = 10f;
-        [SerializeField] private float _baseDU = 100f;
+        [SerializeField] private float _baseDU = 0;
         [SerializeField] private float _baseSP = 0f;
         [SerializeField] private float _spawnInterval = 3f;
 
@@ -39,12 +40,14 @@ namespace Backend
         {
             if (_beltTrack == null) return;
 
-            Item newItem = new StandardItem(_baseAP, _baseDU, _baseSP);
-            _beltTrack.AddItem(newItem);
 
             if (_itemPrefab != null)
             {
-                Instantiate(_itemPrefab, transform.position, Quaternion.identity);
+                GameObject go = Instantiate(_itemPrefab, transform.position, Quaternion.identity);
+
+                _beltTrack.AddItem(go.GetComponent < Item >());
+                go.GetComponent<Item>().Position = transform.position;
+                go.GetComponent<Item>().SetValue(_baseAP, _baseDU, _baseSP);
             }
         }
 
@@ -52,7 +55,7 @@ namespace Backend
         {
             _level++;
             _baseAP += 2f;
-            _baseDU += 10f;
+            _baseDU += 2f;
             _spawnInterval = Mathf.Max(0.5f, _spawnInterval * 0.9f);
         }
     }

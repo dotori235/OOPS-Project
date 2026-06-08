@@ -1,29 +1,37 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Backend
 {
-    public abstract class Item : IUpgradable, ISellable
+    public abstract class Item : MonoBehaviour,IUpgradable, ISellable
     {
-        protected float _attackPower;
-        protected float _durability;
-        protected float _splendor;
-        protected bool _isDefective;
+        private float _attackPower;
+        private float _durability;
+        private float _splendor;
+        private bool _isDefective;
+        private Vector3 _position;
 
         public float AttackPower { get => _attackPower; protected set => _attackPower = value; }
         public float Durability { get => _durability; protected set => _durability = value; }
         public float Splendor { get => _splendor; protected set => _splendor = value; }
         public bool IsDefective { get => _isDefective; protected set => _isDefective = value; }
-
-        protected Item(float attackPower, float durability, float splendor)
+        public Vector3 Position { get => _position; set => _position = value; }
+        public void SetValue(float attackPower, float durability, float splendor)
         {
             _attackPower = attackPower;
             _durability = durability;
             _splendor = splendor;
             _isDefective = false;
         }
-
+        
+        public void MoveItem(Vector3 dp)
+        {
+            _position += dp;
+            transform.position = _position;
+        }
         public virtual void Upgrade(StatType stat, float amount)
         {
+            
             switch (stat)
             {
                 case StatType.AttackPower:
@@ -50,10 +58,7 @@ namespace Backend
 
         public virtual float CalculatePrice(float spMult)
         {
-            if (_isDefective)
-            {
-                return 0f;
-            }
+            
             float basePrice = _attackPower * 2.0f + _durability * 1.0f;
             float splendorBonus = 1.0f + (_splendor * spMult * 0.05f);
             return basePrice * splendorBonus;
@@ -62,13 +67,14 @@ namespace Backend
         public virtual float CalculateDefectChance()
         {
             // Simple defect chance formula based on durability
-            float chance = 0.1f - (_durability * 0.005f);
+            float chance = 0.1f * (5/(_durability + 5));
             return UnityEngine.Mathf.Clamp(chance, 0.01f, 0.9f);
         }
 
         public void MakeDefective()
         {
             _isDefective = true;
+            transform.GetComponent<Renderer>().material.color = Color.red;
         }
     }
 }

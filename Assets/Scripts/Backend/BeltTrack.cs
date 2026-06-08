@@ -6,18 +6,18 @@ namespace Backend
     public class BeltTrack : MonoBehaviour
     {
         [SerializeField] private SellManager _sellManager;
-        [SerializeField] private float _trackLength = 10f;
+        [SerializeField] private float _trackLength = 3.5f;
 
         private int _level = 1;
         private int _machineSpaces = 3;
-        private float _speed = 1.0f;
+        private Vector3 _speed = new Vector3(1, 0, 0);
 
         private readonly List<Item> _items = new List<Item>();
         private readonly Dictionary<Item, float> _itemPositions = new Dictionary<Item, float>();
 
         public int Level { get => _level; private set => _level = value; }
         public int MachineSpaces { get => _machineSpaces; private set => _machineSpaces = value; }
-        public float Speed { get => _speed; private set => _speed = value; }
+        public Vector3 Speed { get => _speed; private set => _speed = value; }
         public float TrackLength { get => _trackLength; private set => _trackLength = value; }
         public List<Item> Items => _items;
 
@@ -29,8 +29,9 @@ namespace Backend
             {
                 Item item = _items[i];
                 float currentPos = _itemPositions[item];
-                float nextPos = currentPos + _speed * Time.deltaTime;
-
+                //float nextPos = currentPos + _speed * Time.deltaTime;
+                item.MoveItem(_speed * Time.deltaTime);
+                /*
                 if (nextPos >= _trackLength)
                 {
                     reachedEnd.Add(item);
@@ -38,6 +39,10 @@ namespace Backend
                 else
                 {
                     _itemPositions[item] = nextPos;
+                }*/
+                if(item.Position.x >= _trackLength)
+                {
+                    reachedEnd.Add(item);
                 }
             }
 
@@ -78,7 +83,7 @@ namespace Backend
 
             foreach (var item in _items)
             {
-                float itemPos = _itemPositions[item];
+                float itemPos = item.transform.position.x;
                 float dist = Mathf.Abs(itemPos - xPosition);
                 if (dist < minDistance)
                 {
@@ -97,8 +102,9 @@ namespace Backend
         public void LevelUp()
         {
             _level++;
-            _speed += 0.5f;
+            _speed.x += 0.5f;
             _machineSpaces += 1;
+            _trackLength += 1;
         }
 
         public int GetMachineSpaces()
