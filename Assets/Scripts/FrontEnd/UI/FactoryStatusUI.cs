@@ -31,8 +31,9 @@ public class FactoryStatusUI : MonoBehaviour, IFactoryStatusObserver
     {
 
     }
-    public void OnFactoryStatusChanged(FactoryStatusType type, float value)
+    public void OnFactoryStatusChanged(FactoryStatusType type, UIUpdateArgs arg)
     {
-        uiDict[type].SetValue(value);
+        uiDict[type].SetValue(arg);
     }
+
 }

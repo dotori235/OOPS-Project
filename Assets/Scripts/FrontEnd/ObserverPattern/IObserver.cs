@@ -10,5 +10,5 @@ public interface IMachineSelectButtonObserver : IObserver
 
 public interface IFactoryStatusObserver : IObserver
 {
-    public void OnFactoryStatusChanged(FactoryStatusType type, float value);
+    public void OnFactoryStatusChanged(FactoryStatusType type, UIUpdateArgs arg);
 }

@@ -12,7 +12,7 @@ public class MachineSelectButton : MonoBehaviour, IMachineSelectButtonSubject
     private List<IObserver> _observers;
     public MachineType MachineType { get { return machineType; } set { machineType = value; } }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Awake()
+    private void Awake()
     {
         _observers = new List<IObserver>();
         GetComponent<Button>().onClick.RemoveAllListeners();

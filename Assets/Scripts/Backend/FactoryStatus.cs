@@ -36,7 +36,9 @@ namespace Backend
                     _factoryStatusValue[type] *= value;
                     break;
             }
-            NotifyFactoryStatus(type, _factoryStatusValue[type]);
+
+            UIUpdateArgs arg = new UIUpdateArgs(_factoryStatusValue[type]);
+            NotifyFactoryStatus(type, arg);
 
         }
         public void RegisterObserver(IObserver observer)
@@ -61,7 +63,7 @@ namespace Backend
             }
         }
         
-        public void NotifyFactoryStatus(FactoryStatusType type, float value)
+        public void NotifyFactoryStatus(FactoryStatusType type, UIUpdateArgs arg)
         {
             foreach (var observer in _observers)
             {
@@ -69,7 +71,7 @@ namespace Backend
 
                 if (observer is IFactoryStatusObserver factoryStatusObserver)
                 {
-                    factoryStatusObserver.OnFactoryStatusChanged(type, value);
+                    factoryStatusObserver.OnFactoryStatusChanged(type, arg);
                 }
             }
         }
@@ -89,16 +91,7 @@ namespace Backend
             ResetStatus();
 
         }
-        /*
-        private FactoryStatus()
-        {
-            _money = 1000f;
-            _brandLevel = 1;
-            _brandPoints = 0f;
-            _splendorMultiplier = 1.0f;
-            _bankruptcyBar = 0f;
-        }
-        */
+
         public static FactoryStatus GetInstance()
         {
             
@@ -108,25 +101,29 @@ namespace Backend
         public void ModifyMoney(float v)
         {
             SetValue(FactoryStatusType.Money, Operation.Addition, v);
-            /*
-            _factoryStatusValue[FactoryStatusType.Money] += v;
-            NotifyFactoryStatus(FactoryStatusType.Money, _factoryStatusValue[FactoryStatusType.Money]);*/
         }
 
         public void AddBrandPoints(float sp)
         {
-            SetValue(FactoryStatusType.BrandPoints, Operation.Addition, sp);
             float threshold = _factoryStatusValue[FactoryStatusType.BrandLevel] * 100f;
+            _factoryStatusValue[FactoryStatusType.BrandPoints] += sp;
+            bool isLevelUp = false;
             while (_factoryStatusValue[FactoryStatusType.BrandPoints] >= threshold)
             {
-                SetValue(FactoryStatusType.BrandPoints, Operation.Addition, -threshold);
-                SetValue(FactoryStatusType.BrandLevel, Operation.Addition, 1);
+                isLevelUp = true;
+                _factoryStatusValue[FactoryStatusType.BrandPoints] += threshold;
+                _factoryStatusValue[FactoryStatusType.BrandLevel] += 1;
+
                 _splendorMultiplier = 1.0f + (_factoryStatusValue[FactoryStatusType.BrandLevel] - 1) * 0.2f;
                 threshold = _factoryStatusValue[FactoryStatusType.BrandLevel] * 100f;
-
-
             }
-
+            if (isLevelUp)
+            {
+                UIUpdateArgs arg = new UIUpdateArgs(1);
+                NotifyFactoryStatus(FactoryStatusType.BrandLevel, arg);
+            }
+            UIUpdateArgs slarg = new SliderUpdateArgs(_factoryStatusValue[FactoryStatusType.BrandPoints], threshold);
+            NotifyFactoryStatus(FactoryStatusType.BrandPoints, slarg);
         }
 
         public void UpdateBankruptcyBar(float delta)

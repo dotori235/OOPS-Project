@@ -71,9 +71,8 @@ namespace Backend
 
         public void ApplyFine(ISellable item, float p)
         {
-            float penaltyMoney = -p*3f;
+            float penaltyMoney = -p*2f;
             float bankruptcyDelta = 10f;
-            Debug.Log(penaltyMoney);
             FactoryStatus.GetInstance().ModifyMoney(penaltyMoney);
             //FactoryStatus.GetInstance().UpdateBankruptcyBar(bankruptcyDelta);
 

@@ -3,13 +3,11 @@ using UnityEngine;
 using Backend;
 using System;
 using UnityEngine.UI;
-public class MachineSelectUI : MonoBehaviour, IMachineSelectButtonObserver
+public class MachineSelectUI : MachineUIBase, IMachineSelectButtonObserver
 {
     [SerializeField] private GameObject buttonPrefab;
     [SerializeField] private Transform buttonContainer;
-    [SerializeField] private GameObject panel;
     private List<MachineSelectButton> buttons;
-    private BeltBlock targetBlock;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
@@ -24,16 +22,16 @@ public class MachineSelectUI : MonoBehaviour, IMachineSelectButtonObserver
         CloseUI();
 
     }
-    public void OpenUI(BeltBlock block)
+    /*
+    public override void OpenUI(BeltBlock block, GameObject selectObj)
     {
-        targetBlock = block;
-        panel.SetActive(true);
+
+        base.OpenUI(block, selectObj);
     }
-    public void CloseUI()
+    public override void CloseUI(GameObject selectObj)
     {
-        targetBlock = null;
-        panel.SetActive(false);
-    }
+        base.CloseUI(selectObj);
+    }*/
     // Update is called once per frame
     void Update()
     {
@@ -44,7 +42,7 @@ public class MachineSelectUI : MonoBehaviour, IMachineSelectButtonObserver
     }
     public void OnButtonSelected(MachineSelectButton button)
     {
-        targetBlock.CreateMachine(button.MachineType);
+        TargetBlock.CreateMachine(button.MachineType);
         CloseUI();
     }
 }

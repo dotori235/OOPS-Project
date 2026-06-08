@@ -5,23 +5,23 @@ namespace Backend
 {
     public abstract class Machine : MonoBehaviour
     {
-        [SerializeField] protected BeltTrack _beltTrack;
-        [SerializeField] protected float _upgradeInterval = 1f;
+        [SerializeField] private BeltTrack _beltTrack;
+        [SerializeField] private float _upgradeInterval = 1f;
 
-        protected int _level = 1;
-        protected float _cooldown = 0f;
-        protected float _upgradeAmount = 1f;
+        private int _level = 1;
+        private float _cooldown = 0f;
+        private float _upgradeAmount = 1f;
         private Renderer   _renderer;
-        public int Level { get => _level; protected set => _level = value; }
-        public float UpgradeInterval { get => _upgradeInterval; protected set => _upgradeInterval = value; }
-        public float UpgradeAmount { get => _upgradeAmount; protected set => _upgradeAmount = value; }
+        public int Level { get => _level; private set => _level = value; }
+        public float UpgradeInterval { get => _upgradeInterval; private set => _upgradeInterval = value; }
+        public float UpgradeAmount { get => _upgradeAmount; private set => _upgradeAmount = value; }
 
-        protected virtual void Start()
+        private void Start()
         {
             _renderer = GetComponent<Renderer>();
             SetAlpha(0.2f);
         }
-        protected virtual void Update()
+        private void Update()
         {
             
             if (_cooldown > 0f)
@@ -43,7 +43,7 @@ namespace Backend
             }
         }
 
-        protected virtual void UpgradeItem(Item item)
+        private void UpgradeItem(Item item)
         {
             StartCoroutine(alphaEff());
             StatType stat = GetTargetStat();
@@ -54,7 +54,7 @@ namespace Backend
 
                 // Machine level increases precision and reduces defect chance
                 float defectChance = item.CalculateDefectChance();
-                if (Random.value < defectChance)
+                if (Random.Range(0,1f) < defectChance)
                 {
                     item.MakeDefective();
                 }
@@ -82,13 +82,13 @@ namespace Backend
             color.a = alpha;
             _renderer.material.color = color;
         }
-        protected IEnumerator alphaEff()
+        private IEnumerator alphaEff()
         {
             SetAlpha(1.0f);
             yield return new WaitForSeconds(0.05f);
             SetAlpha(0.2f);
         }
-        protected void OnTriggerStay(Collider other)
+        private void OnTriggerStay(Collider other)
         {
             if (other.tag == "Item" && _cooldown<=0)
             {

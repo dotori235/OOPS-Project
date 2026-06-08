@@ -3,8 +3,9 @@ using UnityEngine;
 
 public class BeltSelect : MonoBehaviour
 {
-    [SerializeField]private MachineSelectUI m_SelectUI;
-    [SerializeField] private MachineModifyUI m_ModifyUI;
+    [SerializeField]private MachineUIBase m_SelectUI;
+    [SerializeField] private MachineUIBase m_ModifyUI;
+    [SerializeField] private GameObject selectObj;
     private BeltBlock currentBlock;
     private int layerMask;
 
@@ -12,10 +13,14 @@ public class BeltSelect : MonoBehaviour
     {
         layerMask = LayerMask.GetMask("BeltBlock");
     }
+    private void Start()
+    {
+        selectObj.SetActive(false);
+        m_SelectUI.SetSelectOj(selectObj);
+        m_ModifyUI.SetSelectOj(selectObj);
+    }
 
-
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
         if (Input.GetMouseButtonDown(0))
         {
@@ -30,6 +35,7 @@ public class BeltSelect : MonoBehaviour
                     {
                         currentBlock.UnselectBlock();
                         currentBlock = null;
+
                         m_SelectUI.CloseUI();
                         m_ModifyUI.CloseUI();
                     }
@@ -47,8 +53,6 @@ public class BeltSelect : MonoBehaviour
                         else
                         {
                             MachineModifyUIOpen();
-                            Debug.Log(beltBlock.machine);
-                            //levelup
                         }
                     }
                 }
@@ -62,17 +66,14 @@ public class BeltSelect : MonoBehaviour
     
     private void MachineSelectUIOpen()
     {
-        m_SelectUI.OpenUI(currentBlock);
         m_ModifyUI.CloseUI();
+        m_SelectUI.OpenUI(currentBlock);
+        
     }
     private void MachineModifyUIOpen()
     {
         m_SelectUI.CloseUI();
         m_ModifyUI.OpenUI(currentBlock);
     }
-    
-    public void CreateMachine()
-    {
 
-    }
 }

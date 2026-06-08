@@ -5,11 +5,11 @@ namespace Backend
 {
     public abstract class Item : MonoBehaviour,IUpgradable, ISellable
     {
-        protected float _attackPower;
-        protected float _durability;
-        protected float _splendor;
-        protected bool _isDefective;
-        protected Vector3 _position;
+        private float _attackPower;
+        private float _durability;
+        private float _splendor;
+        private bool _isDefective;
+        private Vector3 _position;
 
         public float AttackPower { get => _attackPower; protected set => _attackPower = value; }
         public float Durability { get => _durability; protected set => _durability = value; }
@@ -67,7 +67,7 @@ namespace Backend
         public virtual float CalculateDefectChance()
         {
             // Simple defect chance formula based on durability
-            float chance = 0.3f * (5/(_durability + 5));
+            float chance = 0.1f * (5/(_durability + 5));
             return UnityEngine.Mathf.Clamp(chance, 0.01f, 0.9f);
         }
 

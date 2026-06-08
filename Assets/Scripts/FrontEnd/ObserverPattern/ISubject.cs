@@ -11,5 +11,5 @@ public interface IMachineSelectButtonSubject : ISubject{ }
 
 public interface IFactoryStatusSubject : ISubject
 {
-    public void NotifyFactoryStatus(FactoryStatusType type, float value);
+    public void NotifyFactoryStatus(FactoryStatusType type, UIUpdateArgs arg);
 }
