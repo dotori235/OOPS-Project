@@ -22,10 +22,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install librsvg2-bin (for SVG to PDF conversion)
+      - name: Install librsvg2-bin and Graphviz (for PDF and dot rendering)
         run: |
           sudo apt-get update
-          sudo apt-get install -y librsvg2-bin
+          sudo apt-get install -y librsvg2-bin graphviz
 
       - name: Download PlantUML
         run: |
