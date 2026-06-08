@@ -9,7 +9,7 @@ namespace Backend
         [SerializeField] private GameObject _itemPrefab;
 
         [SerializeField] private float _baseAP = 10f;
-        [SerializeField] private float _baseDU = 100f;
+        [SerializeField] private float _baseDU = 0;
         [SerializeField] private float _baseSP = 0f;
         [SerializeField] private float _spawnInterval = 3f;
 
@@ -55,7 +55,7 @@ namespace Backend
         {
             _level++;
             _baseAP += 2f;
-            _baseDU += 10f;
+            _baseDU += 2f;
             _spawnInterval = Mathf.Max(0.5f, _spawnInterval * 0.9f);
         }
     }

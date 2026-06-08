@@ -9,6 +9,7 @@ public class MachineSelectUI : MonoBehaviour, IMachineSelectButtonObserver
     [SerializeField] private Transform buttonContainer;
     [SerializeField] private GameObject panel;
     private List<MachineSelectButton> buttons;
+    private BeltBlock targetBlock;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
@@ -23,13 +24,14 @@ public class MachineSelectUI : MonoBehaviour, IMachineSelectButtonObserver
         CloseUI();
 
     }
-    public void OpenUI()
+    public void OpenUI(BeltBlock block)
     {
+        targetBlock = block;
         panel.SetActive(true);
     }
     public void CloseUI()
     {
-
+        targetBlock = null;
         panel.SetActive(false);
     }
     // Update is called once per frame
@@ -39,11 +41,10 @@ public class MachineSelectUI : MonoBehaviour, IMachineSelectButtonObserver
     }
     public void OnNotify(ISubject subject)
     {
-
     }
     public void OnButtonSelected(MachineSelectButton button)
     {
-        Debug.Log(button.MachineType);
+        targetBlock.CreateMachine(button.MachineType);
         CloseUI();
     }
 }

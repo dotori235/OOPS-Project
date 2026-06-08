@@ -18,6 +18,16 @@ public class BeltBlock : MonoBehaviour
     }
     public void SelectBlock()
     {
-        Debug.Log(transform.position);
     }
+    public void UnselectBlock()
+    {
+
+    }
+    public void CreateMachine(MachineType type)
+    {
+        GameObject go = Instantiate(MachineManager.Instance.GetMachine(type));
+        _machine = go.GetComponent<Machine>();
+        go.transform.position = transform.position;
+    }
+    
 }

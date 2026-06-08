@@ -81,7 +81,7 @@ namespace Backend
             else
             {
                 Debug.Log($"[RoundManager] Round {_roundNumber} failed! Avg AP: {avgAP} < Threshold: {_apThreshold}. Penalty: +{_penalty} Bankruptcy Bar");
-                FactoryStatus.GetInstance().UpdateBankruptcyBar(_penalty);
+                //FactoryStatus.GetInstance().UpdateBankruptcyBar(_penalty);
                 FactoryStatus.GetInstance().ModifyMoney(-_bonus * 0.5f);
             }
 

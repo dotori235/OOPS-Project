@@ -7,3 +7,8 @@ public interface IMachineSelectButtonObserver : IObserver
 {
     public void OnButtonSelected(MachineSelectButton clickedButton);
 }
+
+public interface IFactoryStatusObserver : IObserver
+{
+    public void OnFactoryStatusChanged(FactoryStatusType type, float value);
+}

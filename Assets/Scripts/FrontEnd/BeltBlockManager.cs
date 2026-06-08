@@ -27,7 +27,7 @@ public class BeltBlockManager : MonoBehaviour
     void generateBeltBlock()
     {
         GameObject go = Instantiate(beltBlockPrefab);
-        go.transform.position = new Vector3(1, 0, 0) * beltBlocks.Count;
+        go.transform.position = new Vector3(1, 0, 0) * (beltBlocks.Count+0.5f);
         beltBlocks.Add(go.GetComponent<BeltBlock>());
     }
 }

@@ -1,15 +1,16 @@
 using Backend;
+using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
-public class MachineSelectButton : MonoBehaviour, ISubject
+public class MachineSelectButton : MonoBehaviour, IMachineSelectButtonSubject
 {
     [SerializeField] private TextMeshProUGUI text;
 
     private MachineType machineType;
     private List<IObserver> _observers;
-    public MachineType MachineType {  get { return machineType; } set { machineType = value; } }
+    public MachineType MachineType { get { return machineType; } set { machineType = value; } }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
@@ -28,8 +29,15 @@ public class MachineSelectButton : MonoBehaviour, ISubject
     {
         NotifyObservers();
     }
-    public void RegisterObserver(IObserver observer) => _observers.Add(observer);
-    public void UnregisterObserver(IObserver observer) => _observers.Remove(observer);
+    public void RegisterObserver(IObserver observer) {
+        if (_observers.Contains(observer)) return;
+        _observers.Add(observer);
+    }
+    public void UnregisterObserver(IObserver observer) {
+        if (!_observers.Contains(observer)) return;
+
+        _observers.Remove(observer); 
+    }
     public void NotifyObservers()
     {
         foreach (var observer in _observers)

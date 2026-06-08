@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace Backend
@@ -10,15 +11,22 @@ namespace Backend
         protected int _level = 1;
         protected float _cooldown = 0f;
         protected float _upgradeAmount = 1f;
-
+        private Renderer   _renderer;
         public int Level { get => _level; protected set => _level = value; }
         public float UpgradeInterval { get => _upgradeInterval; protected set => _upgradeInterval = value; }
         public float UpgradeAmount { get => _upgradeAmount; protected set => _upgradeAmount = value; }
 
+        protected virtual void Start()
+        {
+            _renderer = GetComponent<Renderer>();
+            SetAlpha(0.2f);
+        }
         protected virtual void Update()
         {
+            
             if (_cooldown > 0f)
             {
+                
                 _cooldown -= Time.deltaTime;
                 return;
             }
@@ -35,18 +43,20 @@ namespace Backend
             }
         }
 
-        protected virtual void UpgradeItem(IUpgradable item)
+        protected virtual void UpgradeItem(Item item)
         {
+            StartCoroutine(alphaEff());
             StatType stat = GetTargetStat();
             item.Upgrade(stat, _upgradeAmount);
 
             if (CanCauseDefect())
             {
+
                 // Machine level increases precision and reduces defect chance
-                float defectChance = 0.05f / _level;
-                if (Random.value < defectChance && item is Item concreteItem)
+                float defectChance = item.CalculateDefectChance();
+                if (Random.value < defectChance)
                 {
-                    concreteItem.MakeDefective();
+                    item.MakeDefective();
                 }
             }
         }
@@ -65,5 +75,27 @@ namespace Backend
 
         public abstract StatType GetTargetStat();
         public abstract bool CanCauseDefect();
+
+        private void SetAlpha(float alpha)
+        {
+            Color color = _renderer.material.color;
+            color.a = alpha;
+            _renderer.material.color = color;
+        }
+        protected IEnumerator alphaEff()
+        {
+            SetAlpha(1.0f);
+            yield return new WaitForSeconds(0.05f);
+            SetAlpha(0.2f);
+        }
+        protected void OnTriggerStay(Collider other)
+        {
+            if (other.tag == "Item" && _cooldown<=0)
+            {
+                UpgradeItem(other.GetComponent<Item>());
+                _cooldown = _upgradeInterval;
+            }
+        }
+
     }
 }

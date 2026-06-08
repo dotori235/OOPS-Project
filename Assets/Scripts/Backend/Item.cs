@@ -31,6 +31,7 @@ namespace Backend
         }
         public virtual void Upgrade(StatType stat, float amount)
         {
+            
             switch (stat)
             {
                 case StatType.AttackPower:
@@ -57,10 +58,7 @@ namespace Backend
 
         public virtual float CalculatePrice(float spMult)
         {
-            if (_isDefective)
-            {
-                return 0f;
-            }
+            
             float basePrice = _attackPower * 2.0f + _durability * 1.0f;
             float splendorBonus = 1.0f + (_splendor * spMult * 0.05f);
             return basePrice * splendorBonus;
@@ -69,13 +67,14 @@ namespace Backend
         public virtual float CalculateDefectChance()
         {
             // Simple defect chance formula based on durability
-            float chance = 0.1f - (_durability * 0.005f);
+            float chance = 0.3f * (5/(_durability + 5));
             return UnityEngine.Mathf.Clamp(chance, 0.01f, 0.9f);
         }
 
         public void MakeDefective()
         {
             _isDefective = true;
+            transform.GetComponent<Renderer>().material.color = Color.red;
         }
     }
 }

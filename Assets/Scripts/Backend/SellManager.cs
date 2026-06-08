@@ -46,15 +46,15 @@ namespace Backend
         {
             if (item == null) return;
 
-            if (item.IsDefective)
-            {
-                ApplyFine(item);
-                return;
-            }
+            
 
             float splendorMult = FactoryStatus.GetInstance().SplendorMultiplier * _spMultiplier;
             float price = item.CalculatePrice(splendorMult);
-
+            if (item.IsDefective)
+            {
+                ApplyFine(item, price);
+                return;
+            }
             FactoryStatus.GetInstance().ModifyMoney(price);
 
             float splendorValue = 0f;
@@ -69,13 +69,13 @@ namespace Backend
             EventBus.GetInstance().Publish(new ItemSoldEvent(price, false, splendorValue, attackPowerValue));
         }
 
-        public void ApplyFine(ISellable item)
+        public void ApplyFine(ISellable item, float p)
         {
-            float penaltyMoney = -100f;
+            float penaltyMoney = -p*3f;
             float bankruptcyDelta = 10f;
-
+            Debug.Log(penaltyMoney);
             FactoryStatus.GetInstance().ModifyMoney(penaltyMoney);
-            FactoryStatus.GetInstance().UpdateBankruptcyBar(bankruptcyDelta);
+            //FactoryStatus.GetInstance().UpdateBankruptcyBar(bankruptcyDelta);
 
             EventBus.GetInstance().Publish(new ItemSoldEvent(0f, true, 0f, 0f));
         }

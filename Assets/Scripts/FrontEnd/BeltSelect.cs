@@ -1,9 +1,11 @@
+using Backend;
 using UnityEngine;
 
 public class BeltSelect : MonoBehaviour
 {
     [SerializeField]private MachineSelectUI m_SelectUI;
     [SerializeField] private MachineModifyUI m_ModifyUI;
+    private BeltBlock currentBlock;
     private int layerMask;
 
     private void Awake()
@@ -24,25 +26,53 @@ public class BeltSelect : MonoBehaviour
                 if (hit.collider.gameObject.CompareTag("BeltBlock"))
                 {
                     BeltBlock beltBlock = hit.collider.gameObject.GetComponent<BeltBlock>();
-                    beltBlock.SelectBlock();
-                    if(beltBlock.machine == null)
+                    if(currentBlock == beltBlock)
                     {
-                        InstallMachine();
+                        currentBlock.UnselectBlock();
+                        currentBlock = null;
+                        m_SelectUI.CloseUI();
+                        m_ModifyUI.CloseUI();
                     }
                     else
                     {
-                        Debug.Log(beltBlock.machine);
-                        //levelup
+                        if(currentBlock != null)
+                            currentBlock.UnselectBlock();
+                        currentBlock = beltBlock;
+                        currentBlock.SelectBlock();
+                        if (beltBlock.machine == null)
+                        {
+
+                            MachineSelectUIOpen();
+                        }
+                        else
+                        {
+                            MachineModifyUIOpen();
+                            Debug.Log(beltBlock.machine);
+                            //levelup
+                        }
                     }
+                }
+                else
+                {
+
                 }
             }
         }
     }
     
-    private void InstallMachine()
+    private void MachineSelectUIOpen()
     {
-        m_SelectUI.OpenUI();
-        m_ModifyUI.gameObject.SetActive(false);
+        m_SelectUI.OpenUI(currentBlock);
+        m_ModifyUI.CloseUI();
     }
+    private void MachineModifyUIOpen()
+    {
+        m_SelectUI.CloseUI();
+        m_ModifyUI.OpenUI(currentBlock);
+    }
+    
+    public void CreateMachine()
+    {
 
+    }
 }

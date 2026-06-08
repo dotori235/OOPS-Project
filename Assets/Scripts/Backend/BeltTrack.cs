@@ -6,7 +6,7 @@ namespace Backend
     public class BeltTrack : MonoBehaviour
     {
         [SerializeField] private SellManager _sellManager;
-        [SerializeField] private float _trackLength = 10f;
+        [SerializeField] private float _trackLength = 3.5f;
 
         private int _level = 1;
         private int _machineSpaces = 3;
@@ -83,7 +83,7 @@ namespace Backend
 
             foreach (var item in _items)
             {
-                float itemPos = _itemPositions[item];
+                float itemPos = item.transform.position.x;
                 float dist = Mathf.Abs(itemPos - xPosition);
                 if (dist < minDistance)
                 {
@@ -104,6 +104,7 @@ namespace Backend
             _level++;
             _speed.x += 0.5f;
             _machineSpaces += 1;
+            _trackLength += 1;
         }
 
         public int GetMachineSpaces()

@@ -17,6 +17,7 @@ namespace Backend
 
         private void Awake()
         {
+
             // Find round manager in scene
             var roundManager = FindAnyObjectByType<RoundManager>();
             if (roundManager != null) _managers.Add(roundManager);
