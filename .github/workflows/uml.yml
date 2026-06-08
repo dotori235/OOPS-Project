@@ -1,0 +1,62 @@
+name: Generate UML Diagrams
+
+on:
+  push:
+    paths:
+      - '**.puml'
+  workflow_dispatch:
+
+jobs:
+  generate-uml:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Download PlantUML
+        run: |
+          curl -L https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar \
+            -o plantuml.jar
+
+      - name: Create output directory
+        run: mkdir -p docs/uml
+
+      - name: Generate PNG from .puml files
+        run: |
+          find . -name "*.puml" \
+            ! -path "./.git/*" \
+            ! -path "./plantuml.jar" \
+            | while read puml; do
+              filename=$(basename "$puml" .puml)
+              echo "Generating docs/uml/${filename}.png from ${puml}"
+              java -jar plantuml.jar \
+                -tpng \
+                -charset UTF-8 \
+                -o "$(pwd)/docs/uml" \
+                "$puml"
+            done
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git diff --quiet docs/uml/ \
+            && echo "changed=false" >> $GITHUB_OUTPUT \
+            || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push generated PNGs
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/uml/
+          git commit -m "docs: auto-generate UML diagrams from .puml files [skip ci]"
+          git push
