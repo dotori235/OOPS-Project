@@ -61,9 +61,11 @@ jobs:
       - name: Check for changes
         id: check_changes
         run: |
-          git diff --quiet docs/uml/ && git diff --quiet BACKEND.pdf \
-            && echo "changed=false" >> $GITHUB_OUTPUT \
-            || echo "changed=true" >> $GITHUB_OUTPUT
+          if [ -n "$(git status --porcelain docs/uml/ BACKEND.pdf)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Commit and push generated files
         if: steps.check_changes.outputs.changed == 'true'
