@@ -22,6 +22,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Install FOP (for PDF generation)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fop
+
       - name: Download PlantUML
         run: |
           curl -L https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar \
@@ -45,18 +50,26 @@ jobs:
                 "$puml"
             done
 
+      - name: Generate UML PDF at Root
+        run: |
+          java -jar plantuml.jar \
+            -tpdf \
+            -charset UTF-8 \
+            -o "$(pwd)" \
+            "./Assets/Scripts/BACKEND.puml"
+
       - name: Check for changes
         id: check_changes
         run: |
-          git diff --quiet docs/uml/ \
+          git diff --quiet docs/uml/ && git diff --quiet BACKEND.pdf \
             && echo "changed=false" >> $GITHUB_OUTPUT \
             || echo "changed=true" >> $GITHUB_OUTPUT
 
-      - name: Commit and push generated PNGs
+      - name: Commit and push generated files
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/uml/
-          git commit -m "docs: auto-generate UML diagrams from .puml files [skip ci]"
+          git add docs/uml/ BACKEND.pdf
+          git commit -m "docs: auto-generate UML PNG and PDF diagrams [skip ci]"
           git push
