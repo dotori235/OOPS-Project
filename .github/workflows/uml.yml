@@ -22,10 +22,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install FOP (for PDF generation)
+      - name: Install librsvg2-bin (for SVG to PDF conversion)
         run: |
           sudo apt-get update
-          sudo apt-get install -y fop
+          sudo apt-get install -y librsvg2-bin
 
       - name: Download PlantUML
         run: |
@@ -50,13 +50,15 @@ jobs:
                 "$puml"
             done
 
-      - name: Generate UML PDF at Root
+      - name: Generate UML SVG and Convert to PDF
         run: |
           java -jar plantuml.jar \
-            -tpdf \
+            -tsvg \
             -charset UTF-8 \
             -o "$(pwd)" \
             "./Assets/Scripts/BACKEND.puml"
+          rsvg-convert -f pdf -o BACKEND.pdf BACKEND.svg
+          rm BACKEND.svg
 
       - name: Check for changes
         id: check_changes
