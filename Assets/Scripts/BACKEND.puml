@@ -379,4 +379,5 @@ IFactoryStatusSubject ..|> ISubject
 FactoryStatus ..|> IFactoryStatusSubject
 FactoryStatus "1" o-- "0..*" IObserver : _observers
 
+' Auto-rendering trigger comment
 @enduml
