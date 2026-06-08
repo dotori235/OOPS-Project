@@ -22,14 +22,15 @@ UI (별도 담당)
 
 레이어 간 유일한 브리지:
 - **EventBus** — 백엔드 → UI 단방향 이벤트 전달
-- **Snapshot 구조체** — 읽기 전용 상태 복사본. UI는 직접 백엔드 필드를 읽지 않는다
+- **Snapshot 구조체** — 읽기 전용 상태 복사본
+- **IFactoryStatusSubject & IObserver** — FactoryStatus의 상태 변경을 FrontEnd UI 뷰들이 직접 구독하여 실시간 갱신
 
 ### MonoBehaviour vs Pure C#
 
 | 분류 | 클래스 | 이유 |
 |---|---|---|
-| **MonoBehaviour** | Machine 계열, BeltTrack, ItemSpawner, SellManager, RoundManager, GameManager | 씬에 배치되는 오브젝트. 자체 Update() 루프 필요 |
-| **Pure C#** | Item 계열, FactoryStatus, EventBus, GameEvent 계열, Snapshot 구조체, 인터페이스 | 다수 인스턴스 또는 데이터 전용. MonoBehaviour 오버헤드 불필요 |
+| **MonoBehaviour** | Machine 계열, BeltTrack, ItemSpawner, SellManager, RoundManager, GameManager, Item 계열, FactoryStatus | 씬에 배치되거나 좌표 이동/시각적 표현 연동이 필요하거나, UI 실시간 갱신 및 프레임별 전역 상태 업데이트가 필요함 |
+| **Pure C#** | EventBus, GameEvent 계열, Snapshot 구조체, 인터페이스 | 다수 인스턴스 또는 데이터 전용. MonoBehaviour 오버헤드 불필요 |
 
 모든 클래스를 MonoBehaviour로 만들지 말 것. 위 표를 기준으로 판단하라.
 
@@ -63,22 +64,21 @@ EventBus를 경유하면 발행자와 구독자가 서로를 모른 채 통신�
 **이유**: Single Responsibility Principle. 하나의 클래스가 아이템 생성, 이동, 공간 관리를 모두 담당하면
 변경 이유가 여러 개가 된다. 분리하면 각자의 레벨업 로직과 동작이 독립적으로 변경 가능하다.
 
-### 4. Item을 Pure C#으로 유지
+### 4. Item의 MonoBehaviour 전환
 
-**결정**: Item은 MonoBehaviour가 아닌 Pure C# 클래스
+**결정**: Item을 Pure C#에서 MonoBehaviour 클래스로 전환
 
-**이유**: 벨트 위에 다수의 아이템이 동시에 존재한다. 모두 MonoBehaviour로 만들면
-Unity 내부 오브젝트 관리 비용이 크게 증가한다.
-아이템의 시각적 표현은 ItemSpawner가 Prefab으로 별도 관리한다.
+**이유**: 게임 화면상 물리 좌표 이동(MoveItem) 및 시각적 표현(불량 발생 시 머티리얼 색상 빨간색 변경 등)을 컴포넌트와 직접 연계하고, 물리 충돌(Trigger)을 통해 기계 가공 처리를 매끄럽게 처리하기 위함입니다.
 
-### 5. FactoryStatus Singleton
+### 5. FactoryStatus의 MonoBehaviour 전환 및 UI Observer 패턴 적용
 
-**결정**: 재화, 브랜드, 파산바 등 전역 상태를 FactoryStatus 싱글톤 하나로 관리
+**결정**: FactoryStatus를 MonoBehaviour 싱글톤으로 전환하고, FrontEnd UI 화면에 데이터를 전파할 수 있도록 IFactoryStatusSubject(Observer 패턴)를 구현
 
-**이유**: 여러 매니저가 동일한 전역 상태에 접근해야 한다. 각 매니저가 개별적으로
-상태를 들고 있으면 동기화 문제가 생긴다.
+**이유**: 프레임별로 자금이 음수일 때 파산바 게이지를 실시간으로 가산(Update)하고, 프런트엔드 UI 컴포넌트들이 실시간으로 상태 변경을 구독하여 화면을 갱신하기 위함입니다. 또한 내부 상태 변수를 Dictionary<FactoryStatusType, float>로 추상화하여 상태의 유연한 관리와 전파를 용이하게 하였습니다.
 
-**주의**: 싱글톤 남용을 방지하기 위해 FactoryStatus와 EventBus 외에는 싱글톤을 추가하지 말 것.
+### 7. 벌금 정책 및 파산 게이지 관리 일원화
+
+**결정**: 불량품 판매 시 고정 벌금액 대신 **아이템 가치의 3배 차감**으로 강화하고, 즉발성 파산바 페널티 대신 `FactoryStatus`의 `Update()` 루프를 통해 돈이 마이너스 상태일 때 마이너스 자금 비율에 비례해 매 프레임 파산 게이지가 자연 가산(natural penalty)되도록 일원화함.
 
 ### 6. Machine Configure(BeltTrack) 동적 초기화
 
@@ -93,16 +93,18 @@ Unity 내부 오브젝트 관리 비용이 크게 증가한다.
 ```
 ItemSpawner ──(spawnItem)──► BeltTrack ──(아이템 끝 도달)──► SellManager
                                   │
-                             Machine들
-                           (Update()마다
-                            가장 가까운
-                            아이템 강화)
+                             Machine들 (Update() 최인접 체크 
+                                  │    + OnTriggerStay() 물리 충돌 가공)
+                                  ▼
+                              Item 강화
 
 SellManager ──(ItemSoldEvent)──► EventBus ──► RoundManager
                                           └──► UI Layer (Snapshot)
 
 RoundManager ──(RoundEndEvent)──► EventBus ──► FactoryStatus
-                                          └──► UI Layer (Snapshot)
+                                                  │
+                                                  ▼ (Observer 패턴 전파)
+                                              UI Layer (실시간 화면 갱신)
 ```
 
 ---
