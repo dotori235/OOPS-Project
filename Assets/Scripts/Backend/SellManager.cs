@@ -1,3 +1,4 @@
+using UnityEditor.UIElements;
 using UnityEngine;
 
 namespace Backend
@@ -48,7 +49,7 @@ namespace Backend
 
             
 
-            float splendorMult = FactoryStatus.GetInstance().SplendorMultiplier * _spMultiplier;
+            float splendorMult = FactoryStatus.GetInstance().SplendorMultiplier;
             float price = item.CalculatePrice(splendorMult);
             if (item.IsDefective)
             {
@@ -72,7 +73,6 @@ namespace Backend
         public void ApplyFine(ISellable item, float p)
         {
             float penaltyMoney = -p*2f;
-            float bankruptcyDelta = 10f;
             FactoryStatus.GetInstance().ModifyMoney(penaltyMoney);
             //FactoryStatus.GetInstance().UpdateBankruptcyBar(bankruptcyDelta);
 

@@ -3,15 +3,15 @@ using UnityEngine;
 using Backend;
 using System;
 using UnityEngine.UI;
-public class MachineSelectUI : MachineUIBase, IMachineSelectButtonObserver
+public class MachineSelectUI : MachineUIBase, IMachineButtonObserver
 {
     [SerializeField] private GameObject buttonPrefab;
     [SerializeField] private Transform buttonContainer;
-    private List<MachineSelectButton> buttons;
+    private List<MachineButtonBase> buttons = new List<MachineButtonBase>();
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
-        buttons = new List<MachineSelectButton>();
+        
         foreach (MachineType type in Enum.GetValues(typeof(MachineType)))
         {
             GameObject go = Instantiate(buttonPrefab, buttonContainer);
@@ -19,30 +19,14 @@ public class MachineSelectUI : MachineUIBase, IMachineSelectButtonObserver
             buttons.Add(go.GetComponent<MachineSelectButton>());
             go.GetComponent<MachineSelectButton>().Initialize(type, this);
         }
-        CloseUI();
+        Panel.SetActive(false);
 
     }
-    /*
-    public override void OpenUI(BeltBlock block, GameObject selectObj)
-    {
 
-        base.OpenUI(block, selectObj);
-    }
-    public override void CloseUI(GameObject selectObj)
+    public void OnButtonSelected(IMachineButtonSubject button)
     {
-        base.CloseUI(selectObj);
-    }*/
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-    public void OnNotify(ISubject subject)
-    {
-    }
-    public void OnButtonSelected(MachineSelectButton button)
-    {
-        TargetBlock.CreateMachine(button.MachineType);
+        if(button is MachineSelectButton msB)
+            TargetBlock.CreateMachine(msB.MachineType);
         CloseUI();
     }
 }

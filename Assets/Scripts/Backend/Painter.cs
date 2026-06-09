@@ -2,6 +2,10 @@ namespace Backend
 {
     public class Painter : Machine
     {
+        private void Awake()
+        {
+            SetMachineType(MachineType.Painter);
+        }
         public override StatType GetTargetStat()
         {
             return StatType.Splendor;
