@@ -2,6 +2,7 @@ using NUnit.Framework;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using System.Collections;
 public enum Operation { 
     Addition, Multiplication, Assignment
 }
@@ -69,6 +70,10 @@ namespace Backend
             {
                 UpdateBankruptcyBar(-Money / 1000 * Time.deltaTime);
             }
+            else
+            {
+                UpdateBankruptcyBar(-Time.deltaTime/60);
+            }
         }
         
         public void NotifyFactoryStatus(FactoryStatusType type, UIUpdateArgs arg)
@@ -90,12 +95,16 @@ namespace Backend
             {
                 _factoryStatusValue.Add(type, 0);
             }
-
         }
         private void Start()
         {
+            StartCoroutine(ResetDelay());
+        
+        }
+        private IEnumerator ResetDelay()
+        {
+            yield return null;
             ResetStatus();
-
         }
 
         public static FactoryStatus GetInstance()
@@ -137,7 +146,7 @@ namespace Backend
 
         public bool IsGameOver()
         {
-            return BankruptcyBar >= 1f;
+            return BankruptcyBar >= 1f; 
         }
 
         public void ResetStatus()

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public class MachineUIBase : MonoBehaviour, IBlockObserver
+public class UIPanelBase : MonoBehaviour, IBlockObserver, IUIPanelButtonObserver
 {
     [SerializeField] private GameObject panel;
     private BlockBase _targetBlock;
@@ -9,7 +9,7 @@ public class MachineUIBase : MonoBehaviour, IBlockObserver
     public BlockBase TargetBlock {  get { return _targetBlock; } protected set { _targetBlock = value; }  }
     protected GameObject Panel { get => panel; }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-
+    
     public virtual void OpenUI(BlockBase block)
     {
         _targetBlock = block;
@@ -43,4 +43,7 @@ public class MachineUIBase : MonoBehaviour, IBlockObserver
     {
 
     }
+    public virtual void OnButtonSelected(IUIPanelButtonSubject button) { }
+
+
 }

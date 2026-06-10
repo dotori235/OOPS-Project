@@ -3,11 +3,11 @@ using UnityEngine;
 using Backend;
 using System;
 using UnityEngine.UI;
-public class MachineSelectUI : MachineUIBase, IMachineButtonObserver
+public class MachineSelectUI : UIPanelBase
 {
     [SerializeField] private GameObject buttonPrefab;
     [SerializeField] private Transform buttonContainer;
-    private List<MachineButtonBase> buttons = new List<MachineButtonBase>();
+    private List<UIPanelButtonBase> buttons = new List<UIPanelButtonBase>();
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
@@ -23,7 +23,7 @@ public class MachineSelectUI : MachineUIBase, IMachineButtonObserver
 
     }
 
-    public void OnButtonSelected(IMachineButtonSubject button)
+    public override void OnButtonSelected(IUIPanelButtonSubject button)
     {
         if(button is MachineSelectButton msB && TargetBlock)
             (TargetBlock as BeltBlock).CreateMachine(msB.MachineType);

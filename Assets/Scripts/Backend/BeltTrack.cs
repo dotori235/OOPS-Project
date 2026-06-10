@@ -21,6 +21,7 @@ namespace Backend
         public int MachineSpaces { get => _machineSpaces; private set => _machineSpaces = value; }
         public Vector3 Speed { get => _speed; private set => _speed = value; }
         public float TrackLength { get => _trackLength; private set => _trackLength = value; }
+        public float LevelUpPrice { get => _level * 500; }
         private void Start()
         {
             _sellBlock.RegisterObserver(this);
@@ -121,7 +122,6 @@ namespace Backend
 
         public void RegisterObserver(IObserver observer)
         {
-            Debug.Log("regi");
             if (_observers.Contains(observer)) return;
             _observers.Add(observer);
         }

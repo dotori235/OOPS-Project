@@ -6,6 +6,7 @@ public abstract class BlockBase : MonoBehaviour, IBlockSubject
 {
     private List<IObserver> _observers = new List<IObserver>();
     protected List<IObserver> Observers { get=>_observers ; private set=>_observers=value; }
+    public abstract BlockUIType UIType();
     public virtual void SelectBlock()
     {
         StartCoroutine(NotifyDelay());

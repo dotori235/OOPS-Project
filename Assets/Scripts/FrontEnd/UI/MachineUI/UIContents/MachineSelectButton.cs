@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-public class MachineSelectButton : MachineButtonBase
+public class MachineSelectButton : UIPanelButtonBase
 {
     [SerializeField] private TextMeshProUGUI text;
 
@@ -12,7 +12,7 @@ public class MachineSelectButton : MachineButtonBase
     public MachineType MachineType { get { return machineType; } set { machineType = value; } }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
-    public void Initialize(MachineType type, IMachineButtonObserver observer)
+    public void Initialize(MachineType type, IUIPanelButtonObserver observer)
     {
         machineType = type;
         text.text = machineType.ToString();

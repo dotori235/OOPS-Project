@@ -4,9 +4,9 @@ public interface IObserver
 {
     public void OnNotify(ISubject subject);
 }
-public interface IMachineButtonObserver : IObserver
+public interface IUIPanelButtonObserver : IObserver
 {
-    public void OnButtonSelected(IMachineButtonSubject button);
+    public void OnButtonSelected(IUIPanelButtonSubject button);
 }
 
 

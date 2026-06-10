@@ -54,6 +54,7 @@ namespace Backend
             if (item.IsDefective)
             {
                 ApplyFine(item, price);
+                item.SellItem();
                 return;
             }
             FactoryStatus.GetInstance().ModifyMoney(price);

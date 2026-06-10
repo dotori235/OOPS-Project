@@ -1,16 +1,16 @@
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.UI;
-public abstract class MachineButtonBase : MonoBehaviour, IMachineButtonSubject
+public abstract class UIPanelButtonBase : MonoBehaviour, IUIPanelButtonSubject
 {
     private List<IObserver> _observers = new List<IObserver>();
     protected virtual void Awake()
     {
         
         GetComponent<Button>().onClick.RemoveAllListeners();
-        GetComponent<Button>().onClick.AddListener(OnMachineButtonClick);
+        GetComponent<Button>().onClick.AddListener(OnButtonClick);
     }
-    public virtual void OnMachineButtonClick()
+    public virtual void OnButtonClick()
     {
         NotifyObservers();
     }
@@ -31,7 +31,7 @@ public abstract class MachineButtonBase : MonoBehaviour, IMachineButtonSubject
         {
             observer?.OnNotify(this);
 
-            if(observer is IMachineButtonObserver mbOb)
+            if(observer is IUIPanelButtonObserver mbOb)
             {
                 mbOb.OnButtonSelected(this);
             }

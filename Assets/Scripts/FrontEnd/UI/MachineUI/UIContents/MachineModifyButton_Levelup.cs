@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class MachineModifyButton_Levelup : MachineModifyButton
 {
-    public override void OnMachineButtonClick()
+    public override void OnButtonClick()
     {
-        base.OnMachineButtonClick();
+        base.OnButtonClick();
     }
 }

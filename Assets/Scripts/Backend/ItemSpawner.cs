@@ -71,7 +71,6 @@ namespace Backend
         }
         public void OnBeltTrackLevelChanged(IBeltTrackLevelSubject subject)
         {
-            Debug.Log("levelup is");
             LevelUp();
         }
     }

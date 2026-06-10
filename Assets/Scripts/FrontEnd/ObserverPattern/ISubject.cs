@@ -7,7 +7,7 @@ public interface ISubject
     public void UnregisterObserver(IObserver observer);
     public void NotifyObservers();
 }
-public interface IMachineButtonSubject : ISubject
+public interface IUIPanelButtonSubject : ISubject
 {
 
 }

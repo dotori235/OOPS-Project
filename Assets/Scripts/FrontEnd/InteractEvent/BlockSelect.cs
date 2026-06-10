@@ -1,13 +1,25 @@
 using Backend;
+using System.Collections;
+using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
-
+public enum BlockUIType
+{
+    Null, MachineSelect, MachineModify,TrackModify
+}
 public class BlockSelect : MonoBehaviour
 {
-    [SerializeField] private MachineUIBase m_SelectUI;
-    [SerializeField] private MachineUIBase m_ModifyUI;
-    [SerializeField] private GameObject selectObj;
 
+    [SerializeField] private GameObject selectObj;
+    [System.Serializable]
+    public struct UIPanelMapping
+    {
+        public BlockUIType uiType;
+        public UIPanelBase panel;
+    }
+    [SerializeField] private List<UIPanelMapping> m_UiPanels;
+    private Dictionary<BlockUIType, UIPanelBase> uiDict = new Dictionary<BlockUIType, UIPanelBase>();
     private Camera mainCamera;
     private BlockBase currentBlock;
     private int layerMask;
@@ -15,14 +27,24 @@ public class BlockSelect : MonoBehaviour
     private void Awake()
     {
         mainCamera = Camera.main;
-        layerMask = LayerMask.GetMask("BeltBlock");
+        layerMask = LayerMask.GetMask("Block");
+        foreach(var map in m_UiPanels)
+        {
+            if (map.panel != null && !uiDict.ContainsKey(map.uiType))
+            {
+                uiDict.Add(map.uiType, map.panel);
+            }
+        }
     }
 
     private void Start()
     {
         selectObj.SetActive(false);
-        m_SelectUI.SetSelectOj(selectObj);
-        m_ModifyUI.SetSelectOj(selectObj);
+        foreach (var ui in uiDict.Values)
+        {
+            ui.SetSelectOj(selectObj);
+        }
+
     }
 
     private void Update()
@@ -36,7 +58,7 @@ public class BlockSelect : MonoBehaviour
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
-        if (!Physics.Raycast(ray, out RaycastHit hit, 100f, layerMask)) return;
+        if (!Physics.Raycast(ray, out RaycastHit hit, 100f, layerMask)) {  return; }
 
         if (!hit.collider.TryGetComponent(out BlockBase clickedBlock)) return;
 
@@ -47,27 +69,24 @@ public class BlockSelect : MonoBehaviour
         }
         SelectNewBlock(clickedBlock);
 
-        if (hit.collider.TryGetComponent<BeltBlock>(out BeltBlock clickedBeltBlock))
-        {
-            if (clickedBeltBlock.Machine == null)
-            {
-                OpenMachineSelectUI();
-            }
-            else
-            {
-                OpenMachineModifyUI();
-            }
-        }
-        else if(hit.collider.TryGetComponent<TrackBlock>(out TrackBlock clickedTrackBlock)){
+        BlockUIType uiType = clickedBlock.UIType();
+        SetCurrentUI(uiType);
 
-        }
-        else if(hit.collider.TryGetComponent<SellBlock>(out SellBlock clickedSellBlock)){
-
-        }
-        
 
     }
-
+    private void SetCurrentUI(BlockUIType uiType)
+    {
+        /*
+        foreach(var ui in uiDict.Keys)
+        {
+            if(ui != uiType)
+            {
+                uiDict[ui].CloseUI();
+            }
+        }*/
+        CloseAllUI();
+        uiDict[uiType].OpenUI(currentBlock);
+    }
     private void SelectNewBlock(BlockBase newBlock)
     {
         if (currentBlock != null)
@@ -77,10 +96,6 @@ public class BlockSelect : MonoBehaviour
 
         currentBlock = newBlock;
         currentBlock.SelectBlock();
-
-        
-        
-        
     }
 
     private void DeselectCurrentBlock()
@@ -89,22 +104,15 @@ public class BlockSelect : MonoBehaviour
         {
             currentBlock.UnselectBlock();
         }
-
         currentBlock = null;
-
-        m_SelectUI.CloseUI();
-        m_ModifyUI.CloseUI();
+        CloseAllUI();
     }
 
-    private void OpenMachineSelectUI()
+    private void CloseAllUI()
     {
-        m_ModifyUI.CloseUI();
-        m_SelectUI.OpenUI(currentBlock);
-    }
-
-    private void OpenMachineModifyUI()
-    {
-        m_SelectUI.CloseUI();
-        m_ModifyUI.OpenUI(currentBlock);
+        foreach(UIPanelBase ui in uiDict.Values)
+        {
+            ui.CloseUI();
+        }
     }
 }
