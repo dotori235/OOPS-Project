@@ -66,7 +66,7 @@ namespace Backend
                 attackPowerValue = concreteItem.AttackPower;
                 FactoryStatus.GetInstance().AddBrandPoints(splendorValue);
             }
-
+            item.SellItem();
             EventBus.GetInstance().Publish(new ItemSoldEvent(price, false, splendorValue, attackPowerValue));
         }
 

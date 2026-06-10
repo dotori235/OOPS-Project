@@ -4,5 +4,6 @@ namespace Backend
     {
         float CalculatePrice(float spMult);
         bool IsDefective { get; }
+        public void SellItem();
     }
 }

@@ -1,5 +1,6 @@
 using UnityEngine.Rendering;
 using System.Collections.Generic;
+using Backend;
 public interface ISubject
 {
     public void RegisterObserver(IObserver observer);
@@ -16,9 +17,9 @@ public interface IFactoryStatusSubject : ISubject
     public void NotifyFactoryStatus(FactoryStatusType type, UIUpdateArgs arg);
 }
 
-public interface IBeltBlockSubject : ISubject
+public interface IBlockSubject : ISubject
 {
-    public void NotifyBeltBlock();
+    public void NotifyBlock();
 }
 
 public interface IBeltTrackLevelSubject : ISubject
@@ -29,4 +30,8 @@ public interface IBeltTrackLevelSubject : ISubject
 public interface IRoundSubject : ISubject
 {
     public void NotifyRound();
+}
+public interface ISellBlockSubject : ISubject
+{
+    public void NotifySellBlock(ISellable item);
 }

@@ -3,10 +3,11 @@ using UnityEngine;
 using NUnit.Framework.Constraints;
 namespace Backend
 {
-    public class BeltTrack : MonoBehaviour, IBeltTrackLevelSubject
+    public class BeltTrack : MonoBehaviour, IBeltTrackLevelSubject, ISellBlockObserver
     {
         [SerializeField] private SellManager _sellManager;
-        [SerializeField] private float _trackLength = 3.5f;
+        [SerializeField] private float _trackLength = 4f;
+        [SerializeField] private BlockBase _sellBlock;
 
         private int _level = 1;
         private int _machineSpaces = 3;
@@ -15,11 +16,15 @@ namespace Backend
         private readonly List<Item> _items = new List<Item>();
         private readonly Dictionary<Item, float> _itemPositions = new Dictionary<Item, float>();
         private List<IObserver> _observers = new List<IObserver>();
+
         public int Level { get => _level; private set => _level = value; }
         public int MachineSpaces { get => _machineSpaces; private set => _machineSpaces = value; }
         public Vector3 Speed { get => _speed; private set => _speed = value; }
         public float TrackLength { get => _trackLength; private set => _trackLength = value; }
-
+        private void Start()
+        {
+            _sellBlock.RegisterObserver(this);
+        }
         private void Update()
         {
             List<Item> reachedEnd = new List<Item>();
@@ -44,7 +49,7 @@ namespace Backend
                     reachedEnd.Add(item);
                 }
             }
-
+            /*
             foreach (var item in reachedEnd)
             {
                 RemoveItem(item);
@@ -52,7 +57,7 @@ namespace Backend
                 {
                     _sellManager.SellItem(item);
                 }
-            }
+            }*/
             if(Input.GetKeyDown(KeyCode.P)) LevelUp();
         }
 
@@ -104,6 +109,8 @@ namespace Backend
             _level++;
             _machineSpaces += 1;
             _trackLength += 1;
+            _sellBlock.transform.localPosition = new Vector3(_trackLength+0.5f, 0f, 0f);
+        
             NotifyBeltTrackLevel();
         }
 
@@ -133,9 +140,18 @@ namespace Backend
             {
                 if(ob is IBeltTrackLevelObserver tlOb)
                 {
-                    tlOb.OnBeltTrackLevelChanged();
+                    tlOb.OnBeltTrackLevelChanged(this);
                 }
             }
+        }
+        public void OnNotify(ISubject subject)
+        {
+
+        }
+        public void OnSellBlockReached(ISellable item)
+        {
+            _sellManager.SellItem(item);
+            RemoveItem(item as Item);
         }
     }
 }

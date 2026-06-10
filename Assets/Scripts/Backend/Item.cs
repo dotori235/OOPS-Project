@@ -75,5 +75,9 @@ namespace Backend
             _isDefective = true;
             transform.GetComponent<Renderer>().material.color = Color.red;
         }
+        public void SellItem()
+        {
+            Destroy(gameObject);
+        }
     }
 }

@@ -1,16 +1,16 @@
 using System;
 using UnityEngine;
 
-public class MachineUIBase : MonoBehaviour, IBeltBlockObserver
+public class MachineUIBase : MonoBehaviour, IBlockObserver
 {
     [SerializeField] private GameObject panel;
-    private BeltBlock _targetBlock;
+    private BlockBase _targetBlock;
     private GameObject selectObj;
-    public BeltBlock TargetBlock {  get { return _targetBlock; } protected set { _targetBlock = value; }  }
+    public BlockBase TargetBlock {  get { return _targetBlock; } protected set { _targetBlock = value; }  }
     protected GameObject Panel { get => panel; }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
-    public virtual void OpenUI(BeltBlock block)
+    public virtual void OpenUI(BlockBase block)
     {
         _targetBlock = block;
         _targetBlock?.RegisterObserver(this);
@@ -39,7 +39,7 @@ public class MachineUIBase : MonoBehaviour, IBeltBlockObserver
     {
 
     }
-    public virtual void OnBeltBlockChanged(IBeltBlockSubject beltBlock)
+    public virtual void OnBlockChanged(IBlockSubject beltBlock)
     {
 
     }

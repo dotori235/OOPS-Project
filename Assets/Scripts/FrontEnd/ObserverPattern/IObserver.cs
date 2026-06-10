@@ -1,3 +1,5 @@
+using Backend;
+
 public interface IObserver
 {
     public void OnNotify(ISubject subject);
@@ -13,17 +15,22 @@ public interface IFactoryStatusObserver : IObserver
     public void OnFactoryStatusChanged(FactoryStatusType type, UIUpdateArgs arg);
 }
 
-public interface IBeltBlockObserver: IObserver
+public interface IBlockObserver: IObserver
 {
-    public void OnBeltBlockChanged(IBeltBlockSubject beltBlock);
+    public void OnBlockChanged(IBlockSubject beltBlock);
 }
 
 public interface IBeltTrackLevelObserver: IObserver
 {
-    public void OnBeltTrackLevelChanged();
+    public void OnBeltTrackLevelChanged(IBeltTrackLevelSubject subject);
 }
 
 public interface IRoundObserver: IObserver
 {
     public void OnRoundChanged(IRoundSubject subject, UIUpdateArgs arg);
+}
+
+public interface ISellBlockObserver : IObserver
+{
+    public void OnSellBlockReached(ISellable item);
 }

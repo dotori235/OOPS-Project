@@ -25,8 +25,8 @@ public class MachineSelectUI : MachineUIBase, IMachineButtonObserver
 
     public void OnButtonSelected(IMachineButtonSubject button)
     {
-        if(button is MachineSelectButton msB)
-            TargetBlock.CreateMachine(msB.MachineType);
+        if(button is MachineSelectButton msB && TargetBlock)
+            (TargetBlock as BeltBlock).CreateMachine(msB.MachineType);
         CloseUI();
     }
 }

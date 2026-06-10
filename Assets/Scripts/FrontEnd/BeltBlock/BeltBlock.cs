@@ -3,9 +3,8 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 
-public class BeltBlock : MonoBehaviour, IBeltBlockSubject
+public class BeltBlock : BlockBase
 {
-    private List<IObserver> _observers = new List<IObserver>();
     private Machine _machine;
     public Machine Machine { get { return _machine; } set { _machine = value; } }
     private FactoryStatus _factoryStatus;
@@ -17,18 +16,7 @@ public class BeltBlock : MonoBehaviour, IBeltBlockSubject
         _machine = null;
         _factoryStatus = FactoryStatus.GetInstance();
     }
-    public void SelectBlock()
-    {
-        StartCoroutine(NotifyDelay());
-    }
-    private IEnumerator NotifyDelay()
-    {
-        yield return null;
-        NotifyBeltBlock();
-    }
-    public void UnselectBlock()
-    {
-    }
+
     public bool CreateMachine(MachineType type)
     {
         float pay = Machine.InstallPrice;
@@ -37,7 +25,7 @@ public class BeltBlock : MonoBehaviour, IBeltBlockSubject
             GameObject go = Instantiate(MachineManager.Instance.GetMachine(type));
             _machine = go.GetComponent<Machine>();
             go.transform.position = transform.position;
-            NotifyBeltBlock();
+            NotifyBlock();
             return true;
         }
         return false;
@@ -55,7 +43,7 @@ public class BeltBlock : MonoBehaviour, IBeltBlockSubject
         if (payMoney(pay))
         {
             _machine.LevelUp();
-            NotifyBeltBlock();
+            NotifyBlock();
             return true;
         }
         return false;
@@ -79,30 +67,7 @@ public class BeltBlock : MonoBehaviour, IBeltBlockSubject
 
     }
 
-    public void RegisterObserver(IObserver observer)
-    {
-        if (_observers.Contains(observer)) return;
-        _observers.Add(observer);
-    }
-    public void UnregisterObserver(IObserver observer)
-    {
-        if (!_observers.Contains(observer)) return;
-        _observers.Remove(observer);
-    }
-    public void NotifyObservers()
-    {
+    
 
-    }
-    public void NotifyBeltBlock()
-    {
-        foreach (var observer in _observers)
-        {
-
-            if (observer is IBeltBlockObserver beltBlockObserver)
-            {
-                beltBlockObserver.OnBeltBlockChanged(this);
-            }
-        }
-    }
 
 }

@@ -23,9 +23,9 @@ public class MachineModifyUI : MachineUIBase, IMachineButtonObserver
         levelupBtn?.UnregisterObserver(this);
         sellBtn?.UnregisterObserver(this);
     }
-    public override void OnBeltBlockChanged(IBeltBlockSubject beltBlock)
+    public override void OnBlockChanged(IBlockSubject beltBlock)
     {
-        base.OnBeltBlockChanged (beltBlock);
+        base.OnBlockChanged (beltBlock);
         BeltBlock bb = beltBlock as BeltBlock;
         UIUpdateArgs type = new TextUpdateArgs(bb.MachineName);
         UIUpdateArgs level = new TextUpdateArgs(bb.MachineLevel.ToString());
@@ -39,11 +39,11 @@ public class MachineModifyUI : MachineUIBase, IMachineButtonObserver
     {
         if(button is MachineModifyButton_Levelup levelupBtn)
         {
-            TargetBlock.MachineLevelUp();
+            (TargetBlock as BeltBlock).MachineLevelUp();
         }
         if (button is MachineModifyButton_Sell sellBtn)
         {
-            TargetBlock.SellMachine();
+            (TargetBlock as BeltBlock).SellMachine();
             CloseUI();
         }
         //CloseUI();

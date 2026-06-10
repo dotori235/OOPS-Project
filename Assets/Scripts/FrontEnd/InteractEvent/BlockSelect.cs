@@ -2,15 +2,14 @@ using Backend;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class BeltSelect : MonoBehaviour
+public class BlockSelect : MonoBehaviour
 {
     [SerializeField] private MachineUIBase m_SelectUI;
     [SerializeField] private MachineUIBase m_ModifyUI;
-
     [SerializeField] private GameObject selectObj;
 
     private Camera mainCamera;
-    private BeltBlock currentBlock;
+    private BlockBase currentBlock;
     private int layerMask;
 
     private void Awake()
@@ -39,18 +38,37 @@ public class BeltSelect : MonoBehaviour
 
         if (!Physics.Raycast(ray, out RaycastHit hit, 100f, layerMask)) return;
 
-        if (!hit.collider.TryGetComponent(out BeltBlock clickedBlock)) return;
+        if (!hit.collider.TryGetComponent(out BlockBase clickedBlock)) return;
 
         if (currentBlock == clickedBlock && selectObj.activeSelf)
         {
             DeselectCurrentBlock();
             return;
         }
-
         SelectNewBlock(clickedBlock);
+
+        if (hit.collider.TryGetComponent<BeltBlock>(out BeltBlock clickedBeltBlock))
+        {
+            if (clickedBeltBlock.Machine == null)
+            {
+                OpenMachineSelectUI();
+            }
+            else
+            {
+                OpenMachineModifyUI();
+            }
+        }
+        else if(hit.collider.TryGetComponent<TrackBlock>(out TrackBlock clickedTrackBlock)){
+
+        }
+        else if(hit.collider.TryGetComponent<SellBlock>(out SellBlock clickedSellBlock)){
+
+        }
+        
+
     }
 
-    private void SelectNewBlock(BeltBlock newBlock)
+    private void SelectNewBlock(BlockBase newBlock)
     {
         if (currentBlock != null)
         {
@@ -60,15 +78,9 @@ public class BeltSelect : MonoBehaviour
         currentBlock = newBlock;
         currentBlock.SelectBlock();
 
-        if (currentBlock.Machine == null)
-        {
-            OpenMachineSelectUI();
-        }
-        else
-        {
-            OpenMachineModifyUI();
-        }
-
+        
+        
+        
     }
 
     private void DeselectCurrentBlock()
