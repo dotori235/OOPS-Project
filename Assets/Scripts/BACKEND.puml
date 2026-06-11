@@ -31,8 +31,10 @@ interface IGameEventListener {
   +OnEvent(e: GameEvent): void
 }
 
-interface IManager {
-  +OnEvent(e: GameEvent): void
+interface IGameState {
+  +Enter(): void
+  +Update(): void
+  +Exit(): void
 }
 
 interface IUpgradable {
@@ -347,7 +349,7 @@ note bottom of FactoryStatus
 end note
 
 ' ══════════════════════════════════════════════
-' ROUND MANAGER  (MonoBehaviour + IManager)
+' ROUND MANAGER  (MonoBehaviour)
 ' ══════════════════════════════════════════════
 
 class RoundManager << (S,#FFD700) MonoBehaviour singleton >> {
@@ -375,13 +377,12 @@ class RoundManager << (S,#FFD700) MonoBehaviour singleton >> {
   +NotifyRound(): void
 }
 
-RoundManager ..|> IManager
 RoundManager ..|> IGameEventListener
 RoundManager ..> EventBus : Subscribe / Publish(RoundEndEvent)
 RoundManager ..> FactoryStatus : ModifyMoney
 
 ' ══════════════════════════════════════════════
-' SELL MANAGER  (MonoBehaviour + IManager)
+' SELL MANAGER  (MonoBehaviour)
 ' ══════════════════════════════════════════════
 
 class SellManager << (S,#FFD700) MonoBehaviour singleton >> {
@@ -400,41 +401,59 @@ class SellManager << (S,#FFD700) MonoBehaviour singleton >> {
   +ApplyFine(item: ISellable, p: float): void
 }
 
-SellManager ..|> IManager
 SellManager ..|> IGameEventListener
 SellManager ..> EventBus : Subscribe / Publish(ItemSoldEvent)
 SellManager ..> FactoryStatus : ModifyMoney / AddBrandPoints
 SellManager ..> ISellable : <<use>> param
 
 ' ══════════════════════════════════════════════
-' GAME MANAGER  (MonoBehaviour)
+' GAME MANAGER  (MonoBehaviour) + 게임 흐름 FSM (Pure C#)
 ' ══════════════════════════════════════════════
 
+class GameStateMachine {
+  -_current: IGameState
+  --
+  +Current: IGameState <<get>>
+  +ChangeState(next: IGameState): void
+  +Update(): void
+}
+
+class ReadyState {
+}
+class PlayingState {
+}
+class PausedState {
+}
+class GameOverState {
+}
+
+IGameState <|.. ReadyState
+IGameState <|.. PlayingState
+IGameState <|.. PausedState
+IGameState <|.. GameOverState
+GameStateMachine o-- IGameState : _current
+
+note bottom of GameStateMachine
+  상태 전이: Ready → Playing ⇄ Paused,
+  Playing → GameOver (BankruptcyEvent 수신 시).
+  Playing.Enter: timeScale=1,
+  Paused/GameOver.Enter: timeScale=0
+end note
+
 class GameManager << MonoBehaviour >> {
-  -_beltTrack: BeltTrack <<SerializeField>>
-  -_itemSpawner: ItemSpawner <<SerializeField>>
-  -_grinderPrefab: GameObject <<SerializeField>>
-  -_welderPrefab: GameObject <<SerializeField>>
-  -_painterPrefab: GameObject <<SerializeField>>
-  -_managers: List~IManager~
-  -_placedMachines: List~Machine~
+  -_stateMachine: GameStateMachine
   --
   +OnEvent(e: GameEvent): void
   +StartGame(): void
   +PauseGame(): void
+  +ResumeGame(): void
   +ResetGame(): void
-  +PlaceMachine(type: MachineType, pos: int): void
-  +LevelUpMachine(pos: int): void
-  +RemoveMachine(pos: int): void
-  +LevelUpBelt(): void
 }
 
 GameManager ..|> IGameEventListener
-GameManager ..> EventBus : Subscribe
-GameManager ..> FactoryStatus : IsGameOver / ResetStatus
-GameManager "1" o-- "1"    BeltTrack   : _beltTrack
-GameManager "1" o-- "1"    ItemSpawner : _itemSpawner
-GameManager "1" o-- "0..*" IManager    : _managers
-GameManager "1" o-- "0..*" Machine     : _placedMachines
+GameManager ..> EventBus : Subscribe (BankruptcyEvent)
+GameManager ..> FactoryStatus : ResetStatus
+GameManager "1" *-- "1" GameStateMachine : _stateMachine
+FactoryStatus ..> EventBus : Publish(BankruptcyEvent, 파산바 1.0 도달 시 1회)
 
 @enduml

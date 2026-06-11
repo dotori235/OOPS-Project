@@ -59,14 +59,12 @@ EventBus를 경유하면 발행자와 구독자가 서로를 모른 채 통신�
 **트레이드오프**: 이벤트 흐름이 코드에서 직접 보이지 않아 디버깅이 다소 어려울 수 있다.
 이벤트 타입을 명확하게 네이밍하여 보완한다.
 
-### 2. IManager 인터페이스
+### 2. IManager 인터페이스 (폐기 — refactor/oop-solid Phase 2)
 
-**결정**: `abstract Manager` 클래스 대신 `IManager` 인터페이스 사용
-
-**이유**: C#은 단일 상속만 지원한다. MonoBehaviour를 상속하면서 공통 추상 클래스도 상속하는 것은 불가능하다.
-인터페이스는 다중 구현이 가능하므로 MonoBehaviour 상속과 충돌하지 않는다.
-
-**다형성 유지**: GameManager가 `List<IManager>`를 보유하고 `OnEvent()`를 타입 분기 없이 호출한다.
+**폐기 사유**: GameManager의 `_managers` 리스트는 채우기만 하고 호출처가 없는 dead code였다.
+매니저 간 통신은 EventBus 구독(`IGameEventListener`)으로 이미 일원화되어 있어
+`IManager`는 `IGameEventListener`와 시그니처까지 중복이었다. 인터페이스와
+RoundManager/SellManager의 구현 선언을 삭제했다.
 
 ### 3. BeltTrack + ItemSpawner 분리
 
@@ -114,6 +112,22 @@ ItemSoldEvent·RoundManager까지 수정이 번졌다(OCP 위반). Stat 도입 �
 
 **직렬화**: 인스펙터에는 `StatEntry{StatType, float}` 리스트로 노출하고
 `ISerializationCallbackReceiver`로 Dictionary와 동기화한다 (Dictionary는 Unity 직렬화 불가).
+
+### 9. 게임 흐름 FSM + 게임오버 이벤트화
+
+**결정**: GameManager의 게임 흐름을 `IGameState{Enter/Update/Exit}`(Pure C#) +
+`GameStateMachine`으로 관리. 상태는 Ready → Playing ⇄ Paused, Playing → GameOver.
+기존 StartGame/PauseGame/ResetGame의 `Time.timeScale` 조작은 상태 Enter로 흡수했다.
+게임오버는 매 프레임 `IsGameOver()` 폴링 대신, `FactoryStatus`가 파산바 1.0 도달 시
+`BankruptcyEvent`를 1회 발행하고 GameManager가 수신해 GameOver로 전이한다.
+
+**이유**: 게임 흐름 상태가 timeScale 값에 암묵적으로 흩어져 있어 상태 추가(예: 일시정지
+메뉴, 라운드 전환 연출)가 어려웠다. FSM으로 상태와 전이를 명시하면 새 상태 추가가
+클래스 추가로 끝난다(OCP). 폴링 제거로 GameManager의 Update는 상태 위임만 남는다.
+
+**함께 정리**: GameManager의 기계 배치/강화/제거 경로(PlaceMachine/LevelUpMachine/
+RemoveMachine/LevelUpBelt/_placedMachines/기계 프리팹 필드)는 FrontEnd의
+BeltBlock + MachineManager + 패널 UI가 대체 완료한 죽은 경로라 전부 삭제했다.
 
 ---
 
@@ -225,7 +239,7 @@ BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManage
 | `ItemSpawner` | 스폰 타이밍 및 아이템 프리팹 인스턴스 생성 | 스폰 로직 변경 시 |
 | `SellManager` | 가격 계산, 판매/벌금 처리, ItemSoldEvent 발행 | 판매 공식 변경 시 |
 | `RoundManager` | 라운드 타이머, 평균 AP 기준치, 보상/패널티 | 라운드 규칙 변경 시 |
-| `GameManager` | 씬 라이프사이클, 기계 배치/제거/강화, IManager 조율 | 게임 진입/종료 흐름 변경 시 |
+| `GameManager` | 게임 흐름 FSM 관리 (Ready/Playing/Paused/GameOver 전이) | 게임 진입/종료 흐름 변경 시 |
 | `FactoryStatus` | 전역 상태 읽기/쓰기 + 변경 통지 + 파산바 자연 가감 | 전역 상태 항목 추가/제거 시 |
 | `EventBus` | 이벤트 publish/subscribe | 이벤트 시스템 교체 시 |
 | `Item` 계열 | 스탯 보유/강화/가격 계산 + 자체 시각 표현 | 아이템 스탯·불량 규칙 변경 시 |
@@ -246,12 +260,10 @@ BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManage
    `RoundManager.Instance`, `SellManager.Instance`, `MachineManager.Instance`가 추가됨.
    사용처가 있어 단순 삭제 불가(RoundUI, BeltTrack, BeltBlock이 의존) — 인스펙터 참조로
    바꾸려면 씬 재연결 필요
-3. **`FindAnyObjectByType` 사용**: `GameManager.Awake()`가 RoundManager/SellManager를
-   씬에서 검색한다 (AGENTS.md: 인스펙터 레퍼런스 사용 원칙). 수정 시 씬 재연결 필요
-
 > 1파일 1클래스 위반(Operation/UIUpdateArgs 계열/RoundParameters/BlockUIType 동거,
 > `MachineModifybutton_Sell.cs` 파일명 오타)과 불필요/위험 using
-> (`UnityEditor.UIElements`, NUnit, Newtonsoft 등)은 refactor/oop-solid Phase 0에서 해소됨.
+> (`UnityEditor.UIElements`, NUnit, Newtonsoft 등)은 refactor/oop-solid Phase 0에서,
+> `GameManager.Awake()`의 `FindAnyObjectByType` 검색은 Phase 2(_managers 삭제)에서 해소됨.
 
 ---
 

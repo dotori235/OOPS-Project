@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Backend
 {
-    public class SellManager : MonoBehaviour, IManager, IGameEventListener
+    public class SellManager : MonoBehaviour, IGameEventListener
     {
         private float _apMultiplier = 1.5f;
         private float _spMultiplier = 1.0f;

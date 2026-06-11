@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Backend
 {
-    public class RoundManager : MonoBehaviour, IManager, IGameEventListener, IRoundSubject
+    public class RoundManager : MonoBehaviour, IGameEventListener, IRoundSubject
     {
         private int _roundNumber = 1;
         private float _apThreshold = 15f;
