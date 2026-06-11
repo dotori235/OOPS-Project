@@ -81,5 +81,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcf9c3c1ced27d64990406906abd7b67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Backend.Painter
-  _beltTrack: {fileID: 0}
   _upgradeInterval: 1

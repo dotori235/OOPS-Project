@@ -81,5 +81,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4af4c19fa8e060c499a747ee469e7d6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Backend.Grinder
-  _beltTrack: {fileID: 0}
   _upgradeInterval: 1

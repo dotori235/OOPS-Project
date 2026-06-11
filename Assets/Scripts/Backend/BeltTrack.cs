@@ -6,61 +6,37 @@ namespace Backend
     public class BeltTrack : MonoBehaviour, IBeltTrackLevelSubject, ISellBlockObserver
     {
         [SerializeField] private SellManager _sellManager;
-        [SerializeField] private float _trackLength = 4f;
+        // 타일 수 기반 트랙: 기계 타일 _tileCount개 + 끝의 판매 타일 1개
+        [SerializeField] private int _tileCount = 3;
+        [SerializeField] private float _tileSize = 1f;
         [SerializeField] private BlockBase _sellBlock;
 
         private int _level = 1;
-        private int _machineSpaces = 3;
         private Vector3 _speed = new Vector3(1, 0, 0);
 
         private readonly List<Item> _items = new List<Item>();
-        private readonly Dictionary<Item, float> _itemPositions = new Dictionary<Item, float>();
         private List<IObserver> _observers = new List<IObserver>();
 
         public int Level { get => _level; private set => _level = value; }
-        public int MachineSpaces { get => _machineSpaces; private set => _machineSpaces = value; }
+        public int TileCount { get => _tileCount; private set => _tileCount = value; }
+        public float TileSize { get => _tileSize; private set => _tileSize = value; }
+        public int MachineSpaces { get => _tileCount; }
         public Vector3 Speed { get => _speed; private set => _speed = value; }
-        public float TrackLength { get => _trackLength; private set => _trackLength = value; }
+        public float TrackLength { get => _tileCount * _tileSize; }
         public float LevelUpPrice { get => _level * 500; }
+
         private void Start()
         {
             _sellManager = SellManager.Instance;
             _sellBlock.RegisterObserver(this);
         }
+
         private void Update()
         {
-            List<Item> reachedEnd = new List<Item>();
-
             for (int i = 0; i < _items.Count; i++)
             {
-                Item item = _items[i];
-                float currentPos = _itemPositions[item];
-                //float nextPos = currentPos + _speed * Time.deltaTime;
-                item.MoveItem(_speed * Time.deltaTime);
-                /*
-                if (nextPos >= _trackLength)
-                {
-                    reachedEnd.Add(item);
-                }
-                else
-                {
-                    _itemPositions[item] = nextPos;
-                }*/
-                if(item.Position.x >= _trackLength)
-                {
-                    reachedEnd.Add(item);
-                }
+                _items[i].MoveItem(_speed * Time.deltaTime);
             }
-            /*
-            foreach (var item in reachedEnd)
-            {
-                RemoveItem(item);
-                if (_sellManager != null)
-                {
-                    _sellManager.SellItem(item);
-                }
-            }*/
-            if(Input.GetKeyDown(KeyCode.P)) LevelUp();
         }
 
         public void AddItem(Item item)
@@ -69,56 +45,22 @@ namespace Backend
             if (!_items.Contains(item))
             {
                 _items.Add(item);
-                _itemPositions[item] = 0f;
             }
         }
 
         public void RemoveItem(Item item)
         {
             if (item == null) return;
-            if (_items.Contains(item))
-            {
-                _items.Remove(item);
-                _itemPositions.Remove(item);
-            }
-        }
-
-        public Item GetNearestItem(float xPosition)
-        {
-            Item nearest = null;
-            float minDistance = float.MaxValue;
-
-            foreach (var item in _items)
-            {
-                float itemPos = item.transform.position.x;
-                float dist = Mathf.Abs(itemPos - xPosition);
-                if (dist < minDistance)
-                {
-                    minDistance = dist;
-                    nearest = item;
-                }
-            }
-
-            if (minDistance <= 1.5f)
-            {
-                return nearest;
-            }
-            return null;
+            _items.Remove(item);
         }
 
         public void LevelUp()
         {
             _level++;
-            _machineSpaces += 1;
-            _trackLength += 1;
-            _sellBlock.transform.localPosition = new Vector3(_trackLength+0.5f, 0f, 0f);
-        
-            NotifyBeltTrackLevel();
-        }
+            _tileCount += 1;
+            _sellBlock.transform.localPosition = new Vector3(TrackLength + _tileSize, 0f, 0f);
 
-        public int GetMachineSpaces()
-        {
-            return _machineSpaces;
+            NotifyBeltTrackLevel();
         }
 
         public void RegisterObserver(IObserver observer)

@@ -6102,11 +6102,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2eae0806c78e5a42979d817864d42ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Backend.GameManager
-  _beltTrack: {fileID: 2121741064}
-  _itemSpawner: {fileID: 0}
-  _grinderPrefab: {fileID: 3562547006241322008, guid: 5a76678800620aa429052e0ebee5a598, type: 3}
-  _welderPrefab: {fileID: 3025761766310239541, guid: 0e588cffca85c55489516d930269a2e3, type: 3}
-  _painterPrefab: {fileID: 1542628919881227029, guid: fada6e74731e35a45a542fff7c1fc78d, type: 3}
 --- !u!4 &1804016564
 Transform:
   m_ObjectHideFlags: 0

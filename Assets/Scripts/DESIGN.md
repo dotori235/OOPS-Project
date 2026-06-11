@@ -88,11 +88,13 @@ RoundManager/SellManager의 구현 선언을 삭제했다.
 
 **이유**: 프레임별로 자금이 음수일 때 파산바 게이지를 실시간으로 가산(Update)하고, 프런트엔드 UI 컴포넌트들이 실시간으로 상태 변경을 구독하여 화면을 갱신하기 위함입니다. 또한 내부 상태 변수를 Dictionary<FactoryStatusType, float>로 추상화하여 상태의 유연한 관리와 전파를 용이하게 하였습니다.
 
-### 6. Machine Configure(BeltTrack) 동적 초기화
+### 6. Machine Configure(BeltTrack) 동적 초기화 (폐기 — refactor/oop-solid Phase 3)
 
-**결정**: Machine 추상 클래스에 `Configure(BeltTrack)` 메서드를 구현하여 런타임에 벨트 트랙을 수동으로 연결할 수 있도록 함
-
-**이유**: 씬 구성 단계에서 인스펙터 레퍼런스를 미리 잡아두는 방식은 정적 배치에 유리하지만, 게임 런타임 중에 GameManager가 기계를 동적으로 인스턴스화하고 벨트의 특정 슬롯에 동적으로 임포트/배치할 때 인스펙터 연결이 불가능합니다. `Configure()` 메서드를 통한 의존성 주입 구조를 도입함으로써 씬 배치 및 런타임 동적 생성을 모두 깔끔하게 지원할 수 있게 됩니다.
+**폐기 사유**: 기계 배치 주체가 GameManager에서 FrontEnd의 BeltBlock으로 이관되면서
+`Configure(BeltTrack)`의 유일한 호출처(GameManager.PlaceMachine)가 사라졌다. 실제
+씬/프리팹에서도 `_beltTrack`은 전부 null이어서 Update()의 GetNearestItem 폴링 가공
+경로는 죽은 코드였다. 가공은 OnTriggerStay 물리 충돌 단일 경로로 일원화하고
+Machine의 BeltTrack 의존을 제거했다 — Machine은 이제 벨트 구조를 전혀 모른다.
 
 ### 7. 벌금 정책 및 파산 게이지 관리 일원화
 
@@ -128,6 +130,19 @@ ItemSoldEvent·RoundManager까지 수정이 번졌다(OCP 위반). Stat 도입 �
 **함께 정리**: GameManager의 기계 배치/강화/제거 경로(PlaceMachine/LevelUpMachine/
 RemoveMachine/LevelUpBelt/_placedMachines/기계 프리팹 필드)는 FrontEnd의
 BeltBlock + MachineManager + 패널 UI가 대체 완료한 죽은 경로라 전부 삭제했다.
+
+### 10. BeltTrack 타일화
+
+**결정**: 연속 길이(`_trackLength: float`) 대신 타일 수 기반으로 전환.
+`TrackLength = _tileCount × _tileSize`, `MachineSpaces = _tileCount`(기계 타일 수),
+레벨업 = 타일 +1, 판매 타일(SellBlock)은 트랙 끝(`TrackLength + _tileSize`)에 위치.
+
+**이유**: 벨트의 공간 단위(기계 슬롯·블록 배치·판매 지점)가 모두 1타일 격자로
+움직이는데 길이만 연속값이라 `_machineSpaces`/`_trackLength`/SellBlock 위치를 따로
+증가시키며 동기화해야 했다. 타일 수 하나로 일원화하면 파생값(길이·슬롯 수·판매 위치)이
+모두 계산 프로퍼티가 된다. 함께 삭제: `GetNearestItem`(폴링 가공 폐기), 미사용
+`_itemPositions`, 주석 처리된 끝 도달 판매 로직(판매는 SellBlock 트리거 담당),
+디버그 `Input.GetKeyDown(P)`, `MachineSpaces` 프로퍼티와 중복인 `GetMachineSpaces()`.
 
 ---
 
@@ -209,8 +224,7 @@ Awake에서 설정한다.
 ```
 ItemSpawner ──(item 프리팹 Instantiate + AddItem)──► BeltTrack
                                                         │ Update()마다 아이템 이동
-                                                   Machine들 (Update() 최인접 추적
-                                                        │     + OnTriggerStay() 충돌 가공)
+                                                   Machine들 (OnTriggerStay() 충돌 가공)
                                                         ▼
                                                     Item 강화 (불량 발생 가능)
 

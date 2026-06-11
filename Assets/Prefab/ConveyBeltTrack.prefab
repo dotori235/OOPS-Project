@@ -283,7 +283,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Backend.BeltTrack
   _sellManager: {fileID: 0}
-  _trackLength: 3.5
+  _tileCount: 3
+  _tileSize: 1
   _sellBlock: {fileID: 5689515413256318134}
 --- !u!114 &2744721143879287632
 MonoBehaviour:

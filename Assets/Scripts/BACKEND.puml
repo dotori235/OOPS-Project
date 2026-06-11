@@ -200,7 +200,6 @@ Item "1" *-- "1" Stat : _stats
 ' ══════════════════════════════════════════════
 
 abstract class Machine << MonoBehaviour >> {
-  -_beltTrack: BeltTrack <<SerializeField>>
   -_upgradeInterval: float <<SerializeField>>
   -_level: int
   -_cooldown: float
@@ -213,7 +212,6 @@ abstract class Machine << MonoBehaviour >> {
   +InstallPrice: float <<get>> {static}
   +LevelUpPriceCoeff: float <<get>> {static}
   --
-  +Configure(beltTrack: BeltTrack): void
   +LevelUp(): void
   +GetMachineType(): MachineType
   #SetMachineType(type: MachineType): void
@@ -224,9 +222,9 @@ abstract class Machine << MonoBehaviour >> {
 }
 
 note bottom of Machine
-  가공 경로 2가지: Update()의 GetNearestItem 추적
-  + OnTriggerStay() 물리 충돌. 가공 시 alphaEff
-  코루틴으로 투명도 연출
+  가공 경로는 OnTriggerStay() 물리 충돌 단일.
+  Update()는 쿨다운 감소만 담당.
+  가공 시 alphaEff 코루틴으로 투명도 연출
 end note
 
 class Grinder << MonoBehaviour >> {
@@ -258,32 +256,34 @@ Machine ..> Item : upgrades
 
 class BeltTrack << MonoBehaviour >> {
   -_sellManager: SellManager <<SerializeField>>
-  -_trackLength: float <<SerializeField>>
+  -_tileCount: int <<SerializeField>>
+  -_tileSize: float <<SerializeField>>
   -_sellBlock: BlockBase <<SerializeField>>
   -_level: int
-  -_machineSpaces: int
   -_speed: Vector3
   -_items: List~Item~
-  -_itemPositions: Dict~Item, float~
   -_observers: List~IObserver~
   --
   +Level: int <<get, private set>>
-  +MachineSpaces: int <<get, private set>>
+  +TileCount: int <<get, private set>>
+  +TileSize: float <<get, private set>>
+  +MachineSpaces: int <<get>>
   +Speed: Vector3 <<get, private set>>
-  +TrackLength: float <<get, private set>>
+  +TrackLength: float <<get>>
   +LevelUpPrice: float <<get>>
   --
   +AddItem(item: Item): void
   +RemoveItem(item: Item): void
-  +GetNearestItem(xPosition: float): Item
   +LevelUp(): void
-  +GetMachineSpaces(): int
   +NotifyBeltTrackLevel(): void
   +OnSellBlockReached(item: ISellable): void
 }
 
 note bottom of BeltTrack
   IBeltTrackLevelSubject + ISellBlockObserver 구현 (FRONTEND.puml).
+  타일 수 기반: TrackLength = _tileCount × _tileSize,
+  MachineSpaces = _tileCount, 레벨업 = 타일 +1
+  (판매 타일은 트랙 끝에 1개 추가 배치).
   _sellBlock(FrontEnd BlockBase)을 직접 참조하고
   Start()에서 SellManager.Instance를 사용 — DESIGN.md
   "알려진 어긋남" 참고
