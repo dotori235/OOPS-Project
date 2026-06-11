@@ -1,6 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Backend
@@ -123,7 +121,7 @@ namespace Backend
         public void UnregisterObserver(IObserver observer)
         {
             if (!_observers.Contains(observer)) return;
-            _observers.Add(observer);
+            _observers.Remove(observer);
         }
         public void NotifyObservers()
         {

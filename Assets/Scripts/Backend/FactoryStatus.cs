@@ -1,11 +1,7 @@
-using NUnit.Framework;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
 using System.Collections;
-public enum Operation { 
-    Addition, Multiplication, Assignment
-}
 
 namespace Backend
 {

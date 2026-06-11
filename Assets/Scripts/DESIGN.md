@@ -233,15 +233,10 @@ BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManage
    바꾸려면 씬 재연결 필요
 3. **`FindAnyObjectByType` 사용**: `GameManager.Awake()`가 RoundManager/SellManager를
    씬에서 검색한다 (AGENTS.md: 인스펙터 레퍼런스 사용 원칙). 수정 시 씬 재연결 필요
-4. **1파일 1클래스 위반**: `FactoryStatus.cs`에 `Operation` enum,
-   `UIView.cs`에 `UIUpdateArgs` 계열 3클래스, `RoundUI.cs`에 `RoundParameters`,
-   `BlockSelect.cs`에 `BlockUIType` enum 동거.
-   파일명-클래스명 불일치도 1건: `MachineModifybutton_Sell.cs` ↔ `MachineModifyButton_Sell`
-5. **불필요/위험 using**: `SellManager`의 `UnityEditor.UIElements`(에디터 외 빌드 깨짐),
-   `BeltTrack`/`FactoryStatus`/`BeltBlockManager`의 `NUnit.Framework`,
-   `ItemSpawner`의 `Newtonsoft.Json`, `Machine`의 `Unity.IO.LowLevel.Unsafe`,
-   여러 파일의 `Unity.VisualScripting`, `MachineModifyUI`의
-   `using static UnityEngine.Rendering.DebugUI` 등 — 모두 미사용이므로 제거 필요
+
+> 1파일 1클래스 위반(Operation/UIUpdateArgs 계열/RoundParameters/BlockUIType 동거,
+> `MachineModifybutton_Sell.cs` 파일명 오타)과 불필요/위험 using
+> (`UnityEditor.UIElements`, NUnit, Newtonsoft 등)은 refactor/oop-solid Phase 0에서 해소됨.
 
 ---
 

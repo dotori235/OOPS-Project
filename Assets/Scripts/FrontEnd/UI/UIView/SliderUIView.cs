@@ -1,16 +1,21 @@
 using UnityEngine;
-
 using UnityEngine.UI;
+
 public class SliderUIView : UIView
 {
+    private Slider _slider;
+
+    private void Awake()
+    {
+        _slider = GetComponent<Slider>();
+    }
 
     public override void SetValue(UIUpdateArgs arg)
     {
-        Slider slider = GetComponent<Slider>();
         if (arg is SliderUpdateArgs slarg)
         {
-            slider.maxValue = slarg.MaxValue;
+            _slider.maxValue = slarg.MaxValue;
         }
-        slider.value = (float)arg.Value;
+        _slider.value = (float)arg.Value;
     }
 }

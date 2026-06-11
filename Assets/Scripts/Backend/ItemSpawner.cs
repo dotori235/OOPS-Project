@@ -1,4 +1,3 @@
-using Newtonsoft.Json.Serialization;
 using UnityEngine;
 
 namespace Backend
@@ -52,9 +51,10 @@ namespace Backend
             {
                 GameObject go = Instantiate(_itemPrefab, transform.position, Quaternion.identity, transform);
 
-                _beltTrack.AddItem(go.GetComponent < Item >());
-                go.GetComponent<Item>().Position = transform.position;
-                go.GetComponent<Item>().SetValue(_baseAP, _baseDU, _baseSP);
+                Item item = go.GetComponent<Item>();
+                _beltTrack.AddItem(item);
+                item.Position = transform.position;
+                item.SetValue(_baseAP, _baseDU, _baseSP);
             }
         }
 
