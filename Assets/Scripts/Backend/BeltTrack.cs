@@ -24,6 +24,7 @@ namespace Backend
         public float LevelUpPrice { get => _level * 500; }
         private void Start()
         {
+            _sellManager = SellManager.Instance;
             _sellBlock.RegisterObserver(this);
         }
         private void Update()

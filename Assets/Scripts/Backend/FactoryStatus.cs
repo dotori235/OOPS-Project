@@ -68,7 +68,7 @@ namespace Backend
         {
             if (Money < 0)
             {
-                UpdateBankruptcyBar(-Money / 1000 * Time.deltaTime);
+                UpdateBankruptcyBar(-Money / 2000 * Time.deltaTime);
             }
             else
             {
@@ -130,7 +130,7 @@ namespace Backend
             }
             if (isLevelUp)
             {
-                UIUpdateArgs arg = new UIUpdateArgs(1);
+                UIUpdateArgs arg = new UIUpdateArgs(BrandLevel);
                 NotifyFactoryStatus(FactoryStatusType.BrandLevel, arg);
             }
             UIUpdateArgs slarg = new SliderUpdateArgs(BrandPoints, Threshold());

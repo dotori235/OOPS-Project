@@ -66,7 +66,7 @@ namespace Backend
         public virtual float CalculateDefectChance()
         {
             // Simple defect chance formula based on durability
-            float chance = 0.1f * (5/(_durability + 5));
+            float chance = 0.07f * (5/(_durability + 5));
             return UnityEngine.Mathf.Clamp(chance, 0.01f, 0.9f);
         }
 

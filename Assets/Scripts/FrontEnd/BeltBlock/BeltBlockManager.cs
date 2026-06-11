@@ -24,7 +24,7 @@ public class BeltBlockManager : MonoBehaviour, IBeltTrackLevelObserver
     public void generateBeltBlock()
     {
         GameObject go = Instantiate(beltBlockPrefab, transform);
-        go.transform.position = new Vector3(1, 0, 0) * (beltBlocks.Count+1f);
+        go.transform.localPosition = new Vector3((beltBlocks.Count + 1f), -0.5f, 0);
         beltBlocks.Add(go.GetComponent<BeltBlock>());
     }
     public void OnNotify(ISubject subject)
