@@ -43,7 +43,16 @@ unity -batchmode -quit -projectPath . -buildTarget StandaloneWindows64 -logFile 
 <!-- STRUCTURE: 에이전트가 초기화 후 아래에 실제 구조를 작성 -->
 
 ```
+Assets/Prefab/BeltBlock.prefab
+Assets/Prefab/ConveyBeltTrack.prefab
+Assets/Prefab/Grinder.prefab
+Assets/Prefab/item.prefab
+Assets/Prefab/Machine.prefab
+Assets/Prefab/MachineSelectButton.prefab
+Assets/Prefab/Painter.prefab
+Assets/Prefab/Welder.prefab
 Assets/Scenes/BackEnd.unity
+Assets/Scenes/FrontEnd.unity
 Assets/Scenes/SampleScene.unity
 Assets/Scenes/SampleUIScene.unity
 Assets/Scripts/Backend/BankruptcyEvent.cs
@@ -51,6 +60,7 @@ Assets/Scripts/Backend/BeltTrack.cs
 Assets/Scripts/Backend/EventBus.cs
 Assets/Scripts/Backend/EventType.cs
 Assets/Scripts/Backend/FactoryStatus.cs
+Assets/Scripts/Backend/FactoryStatusType.cs
 Assets/Scripts/Backend/GameEvent.cs
 Assets/Scripts/Backend/GameManager.cs
 Assets/Scripts/Backend/Grinder.cs
@@ -71,6 +81,25 @@ Assets/Scripts/Backend/SellManager.cs
 Assets/Scripts/Backend/StandardItem.cs
 Assets/Scripts/Backend/StatType.cs
 Assets/Scripts/Backend/Welder.cs
+Assets/Scripts/FrontEnd/BankruptcyUIView.cs
+Assets/Scripts/FrontEnd/BeltBlock.cs
+Assets/Scripts/FrontEnd/BeltBlockManager.cs
+Assets/Scripts/FrontEnd/BeltSelect.cs
+Assets/Scripts/FrontEnd/BrandLevelUIView.cs
+Assets/Scripts/FrontEnd/BrandPointUIView.cs
+Assets/Scripts/FrontEnd/CameraMove.cs
+Assets/Scripts/FrontEnd/FactoryStatusUI.cs
+Assets/Scripts/FrontEnd/IObserver.cs
+Assets/Scripts/FrontEnd/ISubject.cs
+Assets/Scripts/FrontEnd/MachineInfo.cs
+Assets/Scripts/FrontEnd/MachineInfoList.cs
+Assets/Scripts/FrontEnd/MachineManager.cs
+Assets/Scripts/FrontEnd/MachineModifyUI.cs
+Assets/Scripts/FrontEnd/MachineSelectButton.cs
+Assets/Scripts/FrontEnd/MachineSelectUI.cs
+Assets/Scripts/FrontEnd/MoneyUIView.cs
+Assets/Scripts/FrontEnd/UIType.cs
+Assets/Scripts/FrontEnd/UIView.cs
 ```
 
 <!-- /STRUCTURE -->

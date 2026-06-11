@@ -67,3 +67,32 @@
 * **빌드 결과**: **정상 컴파일 완료 (Tundra build success)**
 * **에러 및 경고**: **0 Errors, 0 Warnings**
 * **안정성 검증**: Unity 6+ (6000.3.15f1) 엔진 CLI 빌드 환경과 백그라운드 엔진 프로세스 두 경로 모두에서 전혀 컴파일 오류 없이 정상 로드됨을 확인하였습니다.
+
+---
+
+## 5. 동료 팀원의 백엔드 수정 사항 반영 (BackEndModify 머지)
+
+임시 브랜치 `BackEndModify`로부터 머지된 백엔드 변경 사항을 분석하여 문서(`DESIGN.md`, `AGENTS.md`, `BACKEND.puml`)에 완벽히 연동 및 동기화하였습니다.
+
+### 5.1 주요 변경 사항 분석
+1. **MonoBehaviour 전환**:
+   * `Item`과 `FactoryStatus`가 기존 Pure C# 설계에서 **`MonoBehaviour`**로 전환되었습니다.
+   * `Item`은 이제 `transform.position`을 직접 다루며, 불량품 발생 시 머티리얼 색상을 빨간색(`Color.red`)으로 변경하는 연출이 적용됩니다.
+   * `FactoryStatus`는 씬의 GameObject로 붙어, 자금이 음수일 때 매 프레임 파산 게이지를 실시간으로 가산(`Update()`)하고, 옵저버 패턴(`IFactoryStatusSubject`)을 구현하여 FrontEnd UI 화면에 데이터를 브로드캐스트합니다.
+2. **FactoryStatus 상태 관리 변경**:
+   * 기존 개별 필드 구조에서 `Dictionary<FactoryStatusType, float>`를 통한 상태값 보관 구조로 변경되었습니다.
+3. **BeltTrack 및 ItemSpawner 이동 메커니즘**:
+   * `BeltTrack`에서 아이템 이동 속도(`_speed`)가 `float`에서 `Vector3`로 변경되었으며, `item.MoveItem(speed * Time.deltaTime)`을 호출해 아이템을 물리적으로 이동시킵니다.
+   * `ItemSpawner`는 스폰 시 Pure C# 대신 Prefab 인스턴스를 활용하며, `Item` 컴포넌트를 얻어 `SetValue()`로 스탯을 할당합니다.
+4. **Machine 트리거 처리 및 결함 규칙 스왑**:
+   * 기계가 `Update()` 기반 물리 추적 외에 `OnTriggerStay()` 물리 충돌 처리를 병행합니다.
+   * 기계 가공 시 이펙트(`alphaEff` 코루틴)를 통한 투명도 조절 효과 추가.
+   * 결함 유발 규칙 변경: `Painter`가 결함을 유발하고, `Welder`는 결함을 유발하지 않음.
+5. **SellManager 벌금 정책 변경**:
+   * 불량품에 대한 벌금이 고정액(-100f)에서 **가치 비례액(-CalculatedPrice * 3f)**으로 변경되었습니다.
+   * 즉발성 파산바 가산 패널티가 제거되고, `FactoryStatus` 내부의 `Update()` 루프를 통한 매 프레임 자연 가산 로직으로 일원화되었습니다.
+
+### 5.2 문서 및 다이어그램 반영 내용
+* **`AGENTS.md`**: 새로 추가된 `FactoryStatusType.cs` 및 `FrontEnd/` 하위 소스 코드 파일(정렬 준수) 등의 실제 파일 구조를 완전 갱신하였습니다.
+* **`DESIGN.md`**: `Item` 및 `FactoryStatus`가 `MonoBehaviour`로 변경된 사유, IFactoryStatusSubject와 IObserver를 통한 UI 레이어와의 직접 관찰 브리지 추가, 벨트 속도 Vector3 전환, 벌금 공식 변경(가치의 3배 차감) 등의 결정 사항을 반영하였습니다.
+* **`BACKEND.puml`**: `Item`, `FactoryStatus` 클래스에 `<<MonoBehaviour>>` 스테레오타입을 지정하고, Dictionary 상태 보관 구조, Machine의 물리 충돌 처리 및 코루틴, IFactoryStatusSubject/IObserver 인터페이스 등 백엔드 설계 및 변경점을 완벽하게 갱신하였습니다.

@@ -15,10 +15,9 @@ skinparam linetype ortho
 title Backend — Factory Game UML (Unity)
 
 note as N1
-  <b>Pure C#</b>: Item 계열, FactoryStatus, EventBus,
-  GameEvent 계열, Snapshot 구조체, 인터페이스
-  <b>MonoBehaviour</b>: Machine 계열, BeltTrack,
-  ItemSpawner, SellManager, RoundManager, GameManager
+  <b>Pure C#</b>: EventBus, GameEvent 계열, Snapshot 구조체, 인터페이스
+  <b>MonoBehaviour</b>: Machine 계열, BeltTrack, ItemSpawner,
+  SellManager, RoundManager, GameManager, Item 계열, FactoryStatus
 end note
 
 ' ══════════════════════════════════════════════
@@ -95,21 +94,24 @@ EventBus "1" o-- "0..*" IGameEventListener : _listeners
 EventBus ..> GameEvent : dispatches
 
 ' ══════════════════════════════════════════════
-' ITEM  (Pure C#)
+' ITEM  (MonoBehaviour)
 ' ══════════════════════════════════════════════
 
-abstract class Item {
-  ' Pure C#
+abstract class Item << MonoBehaviour >> {
   #_attackPower: float
   #_durability: float
   #_splendor: float
   #_isDefective: bool
+  #_position: Vector3
   --
   +AttackPower: float <<get, protected set>>
   +Durability: float <<get, protected set>>
   +Splendor: float <<get, protected set>>
   +IsDefective: bool <<get, protected set>>
+  +Position: Vector3 <<get, set>>
   --
+  +SetValue(ap: float, du: float, sp: float): void
+  +MoveItem(dp: Vector3): void
   +Upgrade(stat: StatType, amount: float): void
   +GetStats(): Dict~StatType, float~
   +CalculatePrice(spMult: float): float
@@ -117,8 +119,7 @@ abstract class Item {
   +MakeDefective(): void
 }
 
-class StandardItem {
-  +StandardItem(ap: float, du: float, sp: float)
+class StandardItem << MonoBehaviour >> {
 }
 
 Item <|-- StandardItem
@@ -135,15 +136,19 @@ abstract class Machine << MonoBehaviour >> {
   #_level: int
   #_cooldown: float
   #_upgradeAmount: float
+  -_renderer: Renderer
   --
   +Level: int <<get, protected set>>
   +UpgradeInterval: float <<get, protected set>>
   +UpgradeAmount: float <<get, protected set>>
   --
-  +Update(): void
+  #Start(): void
+  #Update(): void
   +LevelUp(): void
-  +CanCauseDefect(): bool
+  #UpgradeItem(item: Item): void
   +GetTargetStat(): StatType
+  +CanCauseDefect(): bool
+  #OnTriggerStay(other: Collider): void
 }
 
 class Grinder << MonoBehaviour >> {
@@ -164,7 +169,7 @@ class Painter << MonoBehaviour >> {
 Machine <|-- Grinder
 Machine <|-- Welder
 Machine <|-- Painter
-Machine ..> IUpgradable : <<use>> param
+Machine ..> Item : <<use>> param
 
 ' ══════════════════════════════════════════════
 ' BELT TRACK  (MonoBehaviour)
@@ -175,11 +180,11 @@ class BeltTrack << MonoBehaviour >> {
   -_trackLength: float
   -_level: int
   -_machineSpaces: int
-  -_speed: float
+  -_speed: Vector3
   --
   +Level: int <<get, private set>>
   +MachineSpaces: int <<get, private set>>
-  +Speed: float <<get, private set>>
+  +Speed: Vector3 <<get, private set>>
   +TrackLength: float <<get, private set>>
   +Items: List~Item~ <<get>>
   --
@@ -220,17 +225,14 @@ ItemSpawner "1" o-- "1" BeltTrack : _beltTrack
 ItemSpawner ..> Item : creates
 
 ' ══════════════════════════════════════════════
-' FACTORY STATUS  (Pure C# singleton)
+' FACTORY STATUS  (MonoBehaviour singleton)
 ' ══════════════════════════════════════════════
 
-class FactoryStatus << (S,#FFD700) singleton >> {
-  ' Pure C# singleton
+class FactoryStatus << (S,#FFD700) singleton >> << MonoBehaviour >> {
   -_instance: FactoryStatus
-  -_money: float
-  -_brandLevel: int
-  -_brandPoints: float
   -_splendorMultiplier: float
-  -_bankruptcyBar: float
+  -_factoryStatusValue: Dict~FactoryStatusType, float~
+  -_observers: List~IObserver~
   --
   +Money: float <<get>>
   +BrandLevel: int <<get>>
@@ -238,11 +240,29 @@ class FactoryStatus << (S,#FFD700) singleton >> {
   +SplendorMultiplier: float <<get>>
   +BankruptcyBar: float <<get>>
   --
-  +getInstance(): FactoryStatus
-  +modifyMoney(v: float): void
-  +addBrandPoints(sp: float): void
-  +updateBankruptcyBar(delta: float): void
-  +isGameOver(): bool
+  +RegisterObserver(observer: IObserver): void
+  +UnregisterObserver(observer: IObserver): void
+  +NotifyObservers(): void
+  +NotifyFactoryStatus(type: FactoryStatusType, value: float): void
+  +ResetStatus(): void
+  +GetInstance(): FactoryStatus
+  +ModifyMoney(v: float): void
+  +AddBrandPoints(sp: float): void
+  +UpdateBankruptcyBar(delta: float): void
+  +IsGameOver(): bool
+}
+
+enum FactoryStatusType {
+  Money
+  BrandLevel
+  BrandPoints
+  BankruptcyBar
+}
+
+enum Operation {
+  Addition
+  Multiplication
+  Assignment
 }
 
 ' ══════════════════════════════════════════════
@@ -291,7 +311,7 @@ class SellManager << MonoBehaviour >> {
   +Update(): void
   +OnEvent(e: GameEvent): void
   +SellItem(item: ISellable): void
-  +ApplyFine(item: ISellable): void
+  +ApplyFine(item: ISellable, p: float): void
 }
 
 SellManager ..|> IManager
@@ -331,4 +351,33 @@ GameManager "1" o-- "1"    EventBus      : _eventBus
 GameManager "1" o-- "1"    FactoryStatus : _status
 GameManager "1" o-- "1..*" IManager      : _managers
 
+' ══════════════════════════════════════════════
+' OBSERVER INTERFACES (FrontEnd/Backend interface)
+' ══════════════════════════════════════════════
+
+interface IObserver {
+  +OnNotify(subject: ISubject): void
+}
+
+interface IFactoryStatusObserver {
+  +OnFactoryStatusChanged(type: FactoryStatusType, value: float): void
+}
+
+interface ISubject {
+  +RegisterObserver(observer: IObserver): void
+  +UnregisterObserver(observer: IObserver): void
+  +NotifyObservers(): void
+}
+
+interface IFactoryStatusSubject {
+  +NotifyFactoryStatus(type: FactoryStatusType, value: float): void
+}
+
+IObserver <|-- IFactoryStatusObserver
+ISubject <|-- IFactoryStatusSubject
+IFactoryStatusSubject ..|> ISubject
+FactoryStatus ..|> IFactoryStatusSubject
+FactoryStatus "1" o-- "0..*" IObserver : _observers
+
+' Auto-rendering trigger comment v4
 @enduml

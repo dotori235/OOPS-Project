@@ -22,6 +22,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Install librsvg2-bin and Graphviz (for PDF and dot rendering)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y librsvg2-bin graphviz
+
       - name: Download PlantUML
         run: |
           curl -L https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar \
@@ -45,18 +50,30 @@ jobs:
                 "$puml"
             done
 
+      - name: Generate UML SVG and Convert to PDF
+        run: |
+          java -jar plantuml.jar \
+            -tsvg \
+            -charset UTF-8 \
+            -o "$(pwd)" \
+            "./Assets/Scripts/BACKEND.puml"
+          rsvg-convert -f pdf -o BACKEND.pdf BACKEND.svg
+          rm BACKEND.svg
+
       - name: Check for changes
         id: check_changes
         run: |
-          git diff --quiet docs/uml/ \
-            && echo "changed=false" >> $GITHUB_OUTPUT \
-            || echo "changed=true" >> $GITHUB_OUTPUT
+          if [ -n "$(git status --porcelain docs/uml/ BACKEND.pdf)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Commit and push generated PNGs
+      - name: Commit and push generated files
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/uml/
-          git commit -m "docs: auto-generate UML diagrams from .puml files [skip ci]"
+          git add docs/uml/ BACKEND.pdf
+          git commit -m "docs: auto-generate UML PNG and PDF diagrams [skip ci]"
           git push
