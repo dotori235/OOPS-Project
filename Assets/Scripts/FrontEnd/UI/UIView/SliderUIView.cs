@@ -11,6 +11,6 @@ public class SliderUIView : UIView
         {
             slider.maxValue = slarg.MaxValue;
         }
-        slider.value = arg.Value;
+        slider.value = (float)arg.Value;
     }
 }

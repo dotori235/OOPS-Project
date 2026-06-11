@@ -1,26 +1,87 @@
 using Backend;
 using UnityEngine;
+using System.Collections.Generic;
+using System.Collections;
 
-public class BeltBlock : MonoBehaviour
+public class BeltBlock : BlockBase
 {
     private Machine _machine;
-    public Machine machine { get { return _machine; } set { _machine = value; } }
+    public Machine Machine { get { return _machine; } set { _machine = value; } }
+    private FactoryStatus _factoryStatus;
+    public string MachineName { get { return _machine == null ? null : _machine.GetMachineType().ToString(); } }
+    public float MachineLevel { get => _machine == null ? 0 : _machine.Level; }
+    public float MachineLevelUpPrice { get => _machine.Level * Machine.LevelUpPriceCoeff; }
+    public float MachineSellPrice { get => (Machine.InstallPrice + (_machine.Level * (_machine.Level - 1) / 2f) * Machine.LevelUpPriceCoeff) / 2; }
+
+    public override BlockUIType UIType()
+    {
+        if(_machine == null)
+        {
+            return BlockUIType.MachineSelect;
+        }
+        else
+        {
+            return BlockUIType.MachineModify;
+        }
+    }
     private void Start()
     {
         _machine = null;
+        _factoryStatus = FactoryStatus.GetInstance();
     }
-    public void SelectBlock()
+
+    public bool CreateMachine(MachineType type)
     {
+        float pay = Machine.InstallPrice;
+        if (PayMoney(pay))
+        {
+            GameObject go = Instantiate(MachineManager.Instance.GetMachine(type));
+            _machine = go.GetComponent<Machine>();
+            go.transform.position = transform.position;
+            NotifyBlock();
+            return true;
+        }
+        return false;
+    }
+    public void SellMachine()
+    {
+        float price = MachineSellPrice;
+        _factoryStatus.ModifyMoney(price);
+        Destroy( _machine.gameObject );
+        _machine = null;
+    }
+    public bool MachineLevelUp()
+    {
+        float pay = MachineLevelUpPrice;
+        if (PayMoney(pay))
+        {
+            _machine.LevelUp();
+            NotifyBlock();
+            return true;
+        }
+        return false;
+    }
+    private bool PayMoney(float pay)
+    {
+        if (_factoryStatus.Money >= pay)
+        {
+            _factoryStatus.ModifyMoney(-pay);
+            return true;
+        }
+        return false;
+    }
+    /*
+    public float CalculateLevelUpPrice()
+    {
+        return _machine.Level * Machine.LevelUpPriceCoeff;
+    }
+    public float CalculateSellPrice()
+    {
+        return (Machine.InstallPrice + (_machine.Level * (_machine.Level - 1) / 2f) * Machine.LevelUpPriceCoeff) / 2;
 
     }
-    public void UnselectBlock()
-    {
-    }
-    public void CreateMachine(MachineType type)
-    {
-        GameObject go = Instantiate(MachineManager.Instance.GetMachine(type));
-        _machine = go.GetComponent<Machine>();
-        go.transform.position = transform.position;
-    }
-    
+
+    */
+
+
 }

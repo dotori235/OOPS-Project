@@ -1,3 +1,4 @@
+using UnityEditor.UIElements;
 using UnityEngine;
 
 namespace Backend
@@ -7,11 +8,15 @@ namespace Backend
         private float _apMultiplier = 1.5f;
         private float _spMultiplier = 1.0f;
         private EventType _activeEvent = EventType.None;
-
+        private static SellManager _instance;
+        public static SellManager Instance { get => _instance; }
         public float ApMultiplier { get => _apMultiplier; set => _apMultiplier = value; }
         public float SpMultiplier { get => _spMultiplier; set => _spMultiplier = value; }
         public EventType ActiveEvent { get => _activeEvent; private set => _activeEvent = value; }
-
+        private void Awake()
+        {
+            if(_instance== null)_instance = this;
+        }
         private void Start()
         {
             EventBus.GetInstance().Subscribe(this);
@@ -48,11 +53,12 @@ namespace Backend
 
             
 
-            float splendorMult = FactoryStatus.GetInstance().SplendorMultiplier * _spMultiplier;
+            float splendorMult = FactoryStatus.GetInstance().SplendorMultiplier;
             float price = item.CalculatePrice(splendorMult);
             if (item.IsDefective)
             {
                 ApplyFine(item, price);
+                item.SellItem();
                 return;
             }
             FactoryStatus.GetInstance().ModifyMoney(price);
@@ -65,14 +71,13 @@ namespace Backend
                 attackPowerValue = concreteItem.AttackPower;
                 FactoryStatus.GetInstance().AddBrandPoints(splendorValue);
             }
-
+            item.SellItem();
             EventBus.GetInstance().Publish(new ItemSoldEvent(price, false, splendorValue, attackPowerValue));
         }
 
         public void ApplyFine(ISellable item, float p)
         {
             float penaltyMoney = -p*2f;
-            float bankruptcyDelta = 10f;
             FactoryStatus.GetInstance().ModifyMoney(penaltyMoney);
             //FactoryStatus.GetInstance().UpdateBankruptcyBar(bankruptcyDelta);
 

@@ -4,13 +4,13 @@ using TMPro;
 using System.Runtime.InteropServices.WindowsRuntime;
 public class UIUpdateArgs
 {
-    public UIUpdateArgs(float value){
+    public UIUpdateArgs(object value){
         _value = value;
     }
 
 
-    private float _value;
-    public float Value { get { return _value; } private set { _value = value; } }
+    private object _value;
+    public object Value { get { return _value; } private set { _value = value; } }
 
 
 }
@@ -23,6 +23,14 @@ public class SliderUpdateArgs : UIUpdateArgs
     }
     private float _maxValue;
     public float MaxValue { get { return _maxValue; } set { _maxValue = value; } }
+}
+public class TextUpdateArgs : UIUpdateArgs
+{
+    public TextUpdateArgs(string value):base(value)
+    {
+
+    }
+    
 }
 
 public abstract class UIView : MonoBehaviour

@@ -59,15 +59,14 @@ namespace Backend
         public virtual float CalculatePrice(float spMult)
         {
             
-            float basePrice = _attackPower * 2.0f + _durability * 1.0f;
-            float splendorBonus = 1.0f + (_splendor * spMult * 0.05f);
-            return basePrice * splendorBonus;
+            float basePrice = _attackPower * 2.0f + _durability * 1.0f + _splendor*(1.0f+spMult);
+            return basePrice;
         }
 
         public virtual float CalculateDefectChance()
         {
             // Simple defect chance formula based on durability
-            float chance = 0.1f * (5/(_durability + 5));
+            float chance = 0.07f * (5/(_durability + 5));
             return UnityEngine.Mathf.Clamp(chance, 0.01f, 0.9f);
         }
 
@@ -75,6 +74,10 @@ namespace Backend
         {
             _isDefective = true;
             transform.GetComponent<Renderer>().material.color = Color.red;
+        }
+        public void SellItem()
+        {
+            Destroy(gameObject);
         }
     }
 }

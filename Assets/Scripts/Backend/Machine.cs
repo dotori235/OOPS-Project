@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.IO.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace Backend
@@ -7,15 +8,17 @@ namespace Backend
     {
         [SerializeField] private BeltTrack _beltTrack;
         [SerializeField] private float _upgradeInterval = 1f;
-
         private int _level = 1;
         private float _cooldown = 0f;
         private float _upgradeAmount = 1f;
         private Renderer   _renderer;
+        private MachineType _type;
         public int Level { get => _level; private set => _level = value; }
         public float UpgradeInterval { get => _upgradeInterval; private set => _upgradeInterval = value; }
         public float UpgradeAmount { get => _upgradeAmount; private set => _upgradeAmount = value; }
-
+        
+        public static float InstallPrice { get => 200f; }
+        public static float LevelUpPriceCoeff { get => 100; }
         private void Start()
         {
             _renderer = GetComponent<Renderer>();
@@ -42,7 +45,14 @@ namespace Backend
                 _cooldown = _upgradeInterval;
             }
         }
-
+        public MachineType GetMachineType()
+        {
+            return _type;
+        }
+        protected virtual void SetMachineType(MachineType type)
+        {
+            _type = type;
+        }
         private void UpgradeItem(Item item)
         {
             StartCoroutine(alphaEff());

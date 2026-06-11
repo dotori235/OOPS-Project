@@ -3,7 +3,7 @@ using UnityEngine;
 public class CameraMove : MonoBehaviour
 {
     private float speed = 5;
-    Vector3 initPos = new Vector3(0, 8, 0)
+    Vector3 initPos = new Vector3(0, 5, -4)
 ;    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
