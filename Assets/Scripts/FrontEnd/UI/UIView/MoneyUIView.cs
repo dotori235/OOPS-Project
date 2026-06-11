@@ -2,8 +2,9 @@ using UnityEngine;
 
 public class MoneyUIView : TextUIView
 {
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         Prefix = "Maney: ";
         Suffix = "$";
     }

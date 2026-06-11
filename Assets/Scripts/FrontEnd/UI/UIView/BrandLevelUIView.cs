@@ -2,8 +2,9 @@ using UnityEngine;
 
 public class BrandLevelUIView : TextUIView
 {
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         Prefix = "Brand Level: ";
     }
 }

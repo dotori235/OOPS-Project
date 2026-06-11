@@ -2,8 +2,9 @@ using UnityEngine;
 
 public class TrackModifyUIView_Level : TextUIView
 {
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         Prefix = "Track Level: ";
     }
 }

@@ -2,9 +2,9 @@ using UnityEngine;
 
 public class MachineModifyUIView_MachineType : TextUIView
 {
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         Prefix = "Type: ";
-        
     }
 }

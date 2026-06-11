@@ -9,7 +9,7 @@ public class TextUIView : UIView
     public string Prefix {  get { return prefix; } protected set { prefix = value; } }
     public string Suffix { get { return suffix; } protected set { suffix = value; } }
 
-    private void Awake()
+    protected virtual void Awake()
     {
         _text = GetComponent<TextMeshProUGUI>();
     }

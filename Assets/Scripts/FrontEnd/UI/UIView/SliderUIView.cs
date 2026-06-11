@@ -5,7 +5,7 @@ public class SliderUIView : UIView
 {
     private Slider _slider;
 
-    private void Awake()
+    protected virtual void Awake()
     {
         _slider = GetComponent<Slider>();
     }
