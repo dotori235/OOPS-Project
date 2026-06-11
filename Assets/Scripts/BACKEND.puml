@@ -15,13 +15,16 @@ skinparam linetype ortho
 title Backend — Factory Game UML (Unity)
 
 note as N1
-  <b>Pure C#</b>: EventBus, GameEvent 계열, Snapshot 구조체, 인터페이스
-  <b>MonoBehaviour</b>: Machine 계열, BeltTrack, ItemSpawner,
-  SellManager, RoundManager, GameManager, Item 계열, FactoryStatus
+  <b>Pure C#</b>: EventBus, GameEvent 계열, 인터페이스
+  <b>MonoBehaviour</b>: Item 계열, Machine 계열, BeltTrack,
+  ItemSpawner, SellManager, RoundManager, GameManager, FactoryStatus
+  <b>브리지</b>: IFactoryStatusSubject, IRoundSubject,
+  IBeltTrackLevelSubject, ISellBlockObserver 등은
+  FrontEnd/ObserverPattern/ 에 정의됨 — FRONTEND.puml 참고
 end note
 
 ' ══════════════════════════════════════════════
-' INTERFACES
+' INTERFACES (Backend)
 ' ══════════════════════════════════════════════
 
 interface IGameEventListener {
@@ -40,6 +43,42 @@ interface IUpgradable {
 interface ISellable {
   +CalculatePrice(spMult: float): float
   +IsDefective: bool <<get>>
+  +SellItem(): void
+}
+
+' ══════════════════════════════════════════════
+' ENUMS
+' ══════════════════════════════════════════════
+
+enum StatType {
+  AttackPower
+  Durability
+  Splendor
+}
+
+enum MachineType {
+  Grinder
+  Welder
+  Painter
+}
+
+enum EventType {
+  None
+  Boom
+  Recession
+}
+
+enum FactoryStatusType {
+  Money
+  BrandLevel
+  BrandPoints
+  BankruptcyBar
+}
+
+enum Operation {
+  Addition
+  Multiplication
+  Assignment
 }
 
 ' ══════════════════════════════════════════════
@@ -80,29 +119,28 @@ GameEvent <|-- BankruptcyEvent
 ' ══════════════════════════════════════════════
 
 class EventBus << (S,#FFD700) singleton >> {
-  ' DontDestroyOnLoad
-  -_instance: EventBus
+  -_instance: EventBus {static}
   -_listeners: List~IGameEventListener~
   --
-  +getInstance(): EventBus
-  +subscribe(l: IGameEventListener): void
-  +unsubscribe(l: IGameEventListener): void
-  +publish(e: GameEvent): void
+  +GetInstance(): EventBus {static}
+  +Subscribe(l: IGameEventListener): void
+  +Unsubscribe(l: IGameEventListener): void
+  +Publish(e: GameEvent): void
 }
 
 EventBus "1" o-- "0..*" IGameEventListener : _listeners
 EventBus ..> GameEvent : dispatches
 
 ' ══════════════════════════════════════════════
-' ITEM  (MonoBehaviour)
+' ITEM  (MonoBehaviour — 프리팹에 부착)
 ' ══════════════════════════════════════════════
 
 abstract class Item << MonoBehaviour >> {
-  #_attackPower: float
-  #_durability: float
-  #_splendor: float
-  #_isDefective: bool
-  #_position: Vector3
+  -_attackPower: float
+  -_durability: float
+  -_splendor: float
+  -_isDefective: bool
+  -_position: Vector3
   --
   +AttackPower: float <<get, protected set>>
   +Durability: float <<get, protected set>>
@@ -117,6 +155,7 @@ abstract class Item << MonoBehaviour >> {
   +CalculatePrice(spMult: float): float
   +CalculateDefectChance(): float
   +MakeDefective(): void
+  +SellItem(): void
 }
 
 class StandardItem << MonoBehaviour >> {
@@ -131,184 +170,206 @@ Item ..|> ISellable
 ' ══════════════════════════════════════════════
 
 abstract class Machine << MonoBehaviour >> {
-  #_beltTrack: BeltTrack
-  #_upgradeInterval: float
-  #_level: int
-  #_cooldown: float
-  #_upgradeAmount: float
-  -_renderer: Renderer
+  -_beltTrack: BeltTrack <<SerializeField>>
+  -_upgradeInterval: float <<SerializeField>>
+  -_level: int
+  -_cooldown: float
+  -_upgradeAmount: float
+  -_type: MachineType
   --
-  +Level: int <<get, protected set>>
-  +UpgradeInterval: float <<get, protected set>>
-  +UpgradeAmount: float <<get, protected set>>
+  +Level: int <<get, private set>>
+  +UpgradeInterval: float <<get, private set>>
+  +UpgradeAmount: float <<get, private set>>
+  +InstallPrice: float <<get>> {static}
+  +LevelUpPriceCoeff: float <<get>> {static}
   --
-  #Start(): void
-  #Update(): void
+  +Configure(beltTrack: BeltTrack): void
   +LevelUp(): void
-  #UpgradeItem(item: Item): void
-  +GetTargetStat(): StatType
-  +CanCauseDefect(): bool
-  #OnTriggerStay(other: Collider): void
+  +GetMachineType(): MachineType
+  #SetMachineType(type: MachineType): void
+  -UpgradeItem(item: Item): void
+  -OnTriggerStay(other: Collider): void
+  +{abstract} GetTargetStat(): StatType
+  +{abstract} CanCauseDefect(): bool
 }
+
+note bottom of Machine
+  가공 경로 2가지: Update()의 GetNearestItem 추적
+  + OnTriggerStay() 물리 충돌. 가공 시 alphaEff
+  코루틴으로 투명도 연출
+end note
 
 class Grinder << MonoBehaviour >> {
   +GetTargetStat(): StatType
   +CanCauseDefect(): bool
 }
+note right of Grinder : AttackPower 강화, 불량 유발 가능
 
 class Welder << MonoBehaviour >> {
   +GetTargetStat(): StatType
   +CanCauseDefect(): bool
 }
+note right of Welder : Durability 강화, 불량 없음
 
 class Painter << MonoBehaviour >> {
   +GetTargetStat(): StatType
   +CanCauseDefect(): bool
 }
+note right of Painter : Splendor 강화, 불량 유발 가능
 
 Machine <|-- Grinder
 Machine <|-- Welder
 Machine <|-- Painter
-Machine ..> Item : <<use>> param
+Machine ..> Item : upgrades
 
 ' ══════════════════════════════════════════════
 ' BELT TRACK  (MonoBehaviour)
 ' ══════════════════════════════════════════════
 
 class BeltTrack << MonoBehaviour >> {
-  -_sellManager: SellManager
-  -_trackLength: float
+  -_sellManager: SellManager <<SerializeField>>
+  -_trackLength: float <<SerializeField>>
+  -_sellBlock: BlockBase <<SerializeField>>
   -_level: int
   -_machineSpaces: int
   -_speed: Vector3
+  -_items: List~Item~
+  -_itemPositions: Dict~Item, float~
+  -_observers: List~IObserver~
   --
   +Level: int <<get, private set>>
   +MachineSpaces: int <<get, private set>>
   +Speed: Vector3 <<get, private set>>
   +TrackLength: float <<get, private set>>
-  +Items: List~Item~ <<get>>
+  +LevelUpPrice: float <<get>>
   --
-  +Update(): void
   +AddItem(item: Item): void
   +RemoveItem(item: Item): void
   +GetNearestItem(xPosition: float): Item
   +LevelUp(): void
   +GetMachineSpaces(): int
+  +NotifyBeltTrackLevel(): void
+  +OnSellBlockReached(item: ISellable): void
 }
 
+note bottom of BeltTrack
+  IBeltTrackLevelSubject + ISellBlockObserver 구현 (FRONTEND.puml).
+  _sellBlock(FrontEnd BlockBase)을 직접 참조하고
+  Start()에서 SellManager.Instance를 사용 — DESIGN.md
+  "알려진 어긋남" 참고
+end note
+
 BeltTrack "1" *-- "0..*" Item : _items
+BeltTrack "1" o-- "1" SellManager : _sellManager
 
 ' ══════════════════════════════════════════════
 ' ITEM SPAWNER  (MonoBehaviour)
 ' ══════════════════════════════════════════════
 
 class ItemSpawner << MonoBehaviour >> {
-  -_beltTrack: BeltTrack
-  -_itemPrefab: GameObject
-  -_baseAP: float
-  -_baseDU: float
-  -_baseSP: float
-  -_spawnInterval: float
+  -_beltTrack: BeltTrack <<SerializeField>>
+  -_itemPrefab: GameObject <<SerializeField>>
+  -_baseAP: float <<SerializeField>>
+  -_baseDU: float <<SerializeField>>
+  -_baseSP: float <<SerializeField>>
+  -_spawnInterval: float <<SerializeField>>
+  -_timer: float
+  -_level: int
   --
   +BaseAP: float <<get, private set>>
   +BaseDU: float <<get, private set>>
   +BaseSP: float <<get, private set>>
   +SpawnInterval: float <<get, private set>>
   --
-  +Update(): void
   +ShouldSpawn(): bool
   +SpawnItem(): void
   +LevelUp(): void
+  +OnBeltTrackLevelChanged(s: IBeltTrackLevelSubject): void
 }
 
 ItemSpawner "1" o-- "1" BeltTrack : _beltTrack
-ItemSpawner ..> Item : creates
+ItemSpawner ..> Item : instantiates prefab
 
 ' ══════════════════════════════════════════════
 ' FACTORY STATUS  (MonoBehaviour singleton)
 ' ══════════════════════════════════════════════
 
-class FactoryStatus << (S,#FFD700) singleton >> << MonoBehaviour >> {
-  -_instance: FactoryStatus
-  -_splendorMultiplier: float
+class FactoryStatus << (S,#FFD700) MonoBehaviour singleton >> {
+  -_instance: FactoryStatus {static}
   -_factoryStatusValue: Dict~FactoryStatusType, float~
   -_observers: List~IObserver~
   --
   +Money: float <<get>>
-  +BrandLevel: int <<get>>
+  +BrandLevel: float <<get>>
   +BrandPoints: float <<get>>
   +SplendorMultiplier: float <<get>>
   +BankruptcyBar: float <<get>>
   --
-  +RegisterObserver(observer: IObserver): void
-  +UnregisterObserver(observer: IObserver): void
-  +NotifyObservers(): void
-  +NotifyFactoryStatus(type: FactoryStatusType, value: float): void
-  +ResetStatus(): void
-  +GetInstance(): FactoryStatus
+  +GetInstance(): FactoryStatus {static}
+  +Threshold(): float
   +ModifyMoney(v: float): void
   +AddBrandPoints(sp: float): void
   +UpdateBankruptcyBar(delta: float): void
   +IsGameOver(): bool
+  +ResetStatus(): void
+  +NotifyFactoryStatus(type: FactoryStatusType, arg: UIUpdateArgs): void
 }
 
-enum FactoryStatusType {
-  Money
-  BrandLevel
-  BrandPoints
-  BankruptcyBar
-}
-
-enum Operation {
-  Addition
-  Multiplication
-  Assignment
-}
+note bottom of FactoryStatus
+  IFactoryStatusSubject 구현 (FRONTEND.puml).
+  Update()에서 파산바 자연 가감:
+  돈이 음수면 -Money/2000*dt 가산, 양수면 dt/60 감소
+end note
 
 ' ══════════════════════════════════════════════
 ' ROUND MANAGER  (MonoBehaviour + IManager)
 ' ══════════════════════════════════════════════
 
-class RoundManager << MonoBehaviour >> {
+class RoundManager << (S,#FFD700) MonoBehaviour singleton >> {
+  -instance: RoundManager {static}
   -_roundNumber: int
   -_apThreshold: float
   -_checkInterval: float
   -_bonus: float
   -_penalty: float
+  -_soldItemAPs: List~float~
+  -_observers: List~IObserver~
   --
+  +Instance: RoundManager <<get>> {static}
   +RoundNumber: int <<get, private set>>
   +ApThreshold: float <<get, private set>>
   +CheckInterval: float <<get, private set>>
   +Bonus: float <<get, private set>>
   +Penalty: float <<get, private set>>
+  +AverageAP: float <<get>>
   --
-  +Start(): void
-  +Update(): void
   +OnEvent(e: GameEvent): void
   +StartRound(): void
+  -EndRound(): void
   +ScaleNextRound(): void
+  +NotifyRound(): void
 }
 
 RoundManager ..|> IManager
 RoundManager ..|> IGameEventListener
-RoundManager "1" o-- "1" EventBus      : _eventBus
-RoundManager "1" o-- "1" FactoryStatus : _status
+RoundManager ..> EventBus : Subscribe / Publish(RoundEndEvent)
+RoundManager ..> FactoryStatus : ModifyMoney
 
 ' ══════════════════════════════════════════════
 ' SELL MANAGER  (MonoBehaviour + IManager)
 ' ══════════════════════════════════════════════
 
-class SellManager << MonoBehaviour >> {
+class SellManager << (S,#FFD700) MonoBehaviour singleton >> {
+  -_instance: SellManager {static}
   -_apMultiplier: float
   -_spMultiplier: float
   -_activeEvent: EventType
   --
+  +Instance: SellManager <<get>> {static}
   +ApMultiplier: float <<get, set>>
   +SpMultiplier: float <<get, set>>
   +ActiveEvent: EventType <<get, private set>>
   --
-  +Start(): void
-  +Update(): void
   +OnEvent(e: GameEvent): void
   +SellItem(item: ISellable): void
   +ApplyFine(item: ISellable, p: float): void
@@ -316,26 +377,23 @@ class SellManager << MonoBehaviour >> {
 
 SellManager ..|> IManager
 SellManager ..|> IGameEventListener
-SellManager "1" o-- "1" EventBus      : _eventBus
-SellManager "1" o-- "1" FactoryStatus : _status
-SellManager  ..> ISellable : <<use>> param
+SellManager ..> EventBus : Subscribe / Publish(ItemSoldEvent)
+SellManager ..> FactoryStatus : ModifyMoney / AddBrandPoints
+SellManager ..> ISellable : <<use>> param
 
 ' ══════════════════════════════════════════════
 ' GAME MANAGER  (MonoBehaviour)
 ' ══════════════════════════════════════════════
 
 class GameManager << MonoBehaviour >> {
-  -_beltTrack: BeltTrack
-  -_itemSpawner: ItemSpawner
-  -_grinderPrefab: GameObject
-  -_welderPrefab: GameObject
-  -_painterPrefab: GameObject
+  -_beltTrack: BeltTrack <<SerializeField>>
+  -_itemSpawner: ItemSpawner <<SerializeField>>
+  -_grinderPrefab: GameObject <<SerializeField>>
+  -_welderPrefab: GameObject <<SerializeField>>
+  -_painterPrefab: GameObject <<SerializeField>>
   -_managers: List~IManager~
   -_placedMachines: List~Machine~
   --
-  +Awake(): void
-  +Start(): void
-  +Update(): void
   +OnEvent(e: GameEvent): void
   +StartGame(): void
   +PauseGame(): void
@@ -347,37 +405,11 @@ class GameManager << MonoBehaviour >> {
 }
 
 GameManager ..|> IGameEventListener
-GameManager "1" o-- "1"    EventBus      : _eventBus
-GameManager "1" o-- "1"    FactoryStatus : _status
-GameManager "1" o-- "1..*" IManager      : _managers
+GameManager ..> EventBus : Subscribe
+GameManager ..> FactoryStatus : IsGameOver / ResetStatus
+GameManager "1" o-- "1"    BeltTrack   : _beltTrack
+GameManager "1" o-- "1"    ItemSpawner : _itemSpawner
+GameManager "1" o-- "0..*" IManager    : _managers
+GameManager "1" o-- "0..*" Machine     : _placedMachines
 
-' ══════════════════════════════════════════════
-' OBSERVER INTERFACES (FrontEnd/Backend interface)
-' ══════════════════════════════════════════════
-
-interface IObserver {
-  +OnNotify(subject: ISubject): void
-}
-
-interface IFactoryStatusObserver {
-  +OnFactoryStatusChanged(type: FactoryStatusType, value: float): void
-}
-
-interface ISubject {
-  +RegisterObserver(observer: IObserver): void
-  +UnregisterObserver(observer: IObserver): void
-  +NotifyObservers(): void
-}
-
-interface IFactoryStatusSubject {
-  +NotifyFactoryStatus(type: FactoryStatusType, value: float): void
-}
-
-IObserver <|-- IFactoryStatusObserver
-ISubject <|-- IFactoryStatusSubject
-IFactoryStatusSubject ..|> ISubject
-FactoryStatus ..|> IFactoryStatusSubject
-FactoryStatus "1" o-- "0..*" IObserver : _observers
-
-' Auto-rendering trigger comment v4
 @enduml

@@ -1,8 +1,14 @@
-# DESIGN.md — Factory Simulation Game (Unity) Backend
+# DESIGN.md — Factory Simulation Game (Unity)
 
-이 문서는 백엔드 설계 결정과 그 이유를 기록한다.
-구현 세부사항(클래스 목록, 메서드 시그니처)은 `BACKEND.puml`을 참고하라.
-에이전트는 클래스 생성/수정 시 반드시 `BACKEND.puml`도 함께 업데이트해야 한다.
+이 문서는 백엔드·프런트엔드 설계 결정과 그 이유, 그리고 두 레이어를 잇는 브리지 구조를 기록한다.
+구현 세부사항(클래스 목록, 메서드 시그니처)은 레이어별 UML을 참고하라:
+
+- 백엔드: `BACKEND.puml` (Assets/Scripts/Backend/)
+- 프런트엔드: `FRONTEND.puml` (Assets/Scripts/FrontEnd/)
+
+에이전트는 클래스 생성/수정 시 반드시 **해당 레이어의 puml**도 함께 업데이트해야 한다.
+
+> 최신화: 2026-06-11 (main, PR #8·#9 머지 직후 기준)
 
 ---
 
@@ -10,33 +16,38 @@
 
 ### Layer Separation
 
-백엔드와 UI는 엄격히 분리된다.
+백엔드와 프런트엔드(UI)는 폴더 단위로 분리된다.
 
 ```
-Backend (이 문서의 범위)
-└── 순수 C# 클래스 및 MonoBehaviour 로직 클래스
-
-UI (별도 담당)
-└── MonoBehaviour 렌더링 전담 클래스
+Assets/Scripts/Backend/   — 게임 로직 (namespace Backend)
+Assets/Scripts/FrontEnd/  — 렌더링·입력·UI (글로벌 namespace)
 ```
 
-레이어 간 유일한 브리지:
-- **EventBus** — 백엔드 → UI 단방향 이벤트 전달
-- **Snapshot 구조체** — 읽기 전용 상태 복사본
-- **IFactoryStatusSubject & IObserver** — FactoryStatus의 상태 변경을 FrontEnd UI 뷰들이 직접 구독하여 실시간 갱신
+레이어 간 브리지는 두 가지다:
+
+- **EventBus** — 백엔드 매니저 간 publish/subscribe. `ItemSoldEvent`, `RoundEndEvent` 등
+  `GameEvent` 파생 이벤트를 전달한다
+- **Observer 패턴 (ISubject/IObserver)** — `FrontEnd/ObserverPattern/`에 정의된
+  Subject/Observer 인터페이스 쌍. 백엔드 Subject(FactoryStatus, RoundManager, BeltTrack)가
+  상태 변화 시 `UIUpdateArgs`(읽기 전용 값 래퍼)를 만들어 UI Observer에게 push한다.
+  UI는 백엔드 필드를 직접 읽지 않는다
+
+> 초기 설계의 "Snapshot 구조체"는 구현되지 않았고, `UIUpdateArgs`가 그 역할(읽기 전용
+> 상태 복사본 전달)을 대신한다.
 
 ### MonoBehaviour vs Pure C#
 
 | 분류 | 클래스 | 이유 |
 |---|---|---|
-| **MonoBehaviour** | Machine 계열, BeltTrack, ItemSpawner, SellManager, RoundManager, GameManager, Item 계열, FactoryStatus | 씬에 배치되거나 좌표 이동/시각적 표현 연동이 필요하거나, UI 실시간 갱신 및 프레임별 전역 상태 업데이트가 필요함 |
-| **Pure C#** | EventBus, GameEvent 계열, Snapshot 구조체, 인터페이스 | 다수 인스턴스 또는 데이터 전용. MonoBehaviour 오버헤드 불필요 |
+| **MonoBehaviour** | Machine 계열, BeltTrack, ItemSpawner, SellManager, RoundManager, GameManager, Item 계열, FactoryStatus, FrontEnd 전체(UIView·패널·블록 등) | 씬에 배치되거나 좌표 이동/시각 표현/물리 충돌/프레임별 갱신이 필요함 |
+| **Pure C#** | EventBus, GameEvent 계열, UIUpdateArgs 계열, RoundParameters, 인터페이스 | 데이터 전용 또는 씬과 무관. MonoBehaviour 오버헤드 불필요 |
+| **ScriptableObject** | MachineInfo, MachineInfoList | 기계 타입→프리팹 매핑을 에셋 데이터로 관리 |
 
 모든 클래스를 MonoBehaviour로 만들지 말 것. 위 표를 기준으로 판단하라.
 
 ---
 
-## Key Design Decisions
+## Backend Design Decisions
 
 ### 1. EventBus (Observer Pattern)
 
@@ -55,7 +66,7 @@ EventBus를 경유하면 발행자와 구독자가 서로를 모른 채 통신�
 **이유**: C#은 단일 상속만 지원한다. MonoBehaviour를 상속하면서 공통 추상 클래스도 상속하는 것은 불가능하다.
 인터페이스는 다중 구현이 가능하므로 MonoBehaviour 상속과 충돌하지 않는다.
 
-**다형성 유지**: GameManager가 `List<IManager>`를 보유하고 `onEvent()`를 타입 분기 없이 호출한다.
+**다형성 유지**: GameManager가 `List<IManager>`를 보유하고 `OnEvent()`를 타입 분기 없이 호출한다.
 
 ### 3. BeltTrack + ItemSpawner 분리
 
@@ -70,15 +81,14 @@ EventBus를 경유하면 발행자와 구독자가 서로를 모른 채 통신�
 
 **이유**: 게임 화면상 물리 좌표 이동(MoveItem) 및 시각적 표현(불량 발생 시 머티리얼 색상 빨간색 변경 등)을 컴포넌트와 직접 연계하고, 물리 충돌(Trigger)을 통해 기계 가공 처리를 매끄럽게 처리하기 위함입니다.
 
+**트레이드오프**: 아이템 수가 많아지면 GameObject 관리 비용이 커진다. 성능 문제가 생기면
+오브젝트 풀링을 우선 검토할 것.
+
 ### 5. FactoryStatus의 MonoBehaviour 전환 및 UI Observer 패턴 적용
 
 **결정**: FactoryStatus를 MonoBehaviour 싱글톤으로 전환하고, FrontEnd UI 화면에 데이터를 전파할 수 있도록 IFactoryStatusSubject(Observer 패턴)를 구현
 
 **이유**: 프레임별로 자금이 음수일 때 파산바 게이지를 실시간으로 가산(Update)하고, 프런트엔드 UI 컴포넌트들이 실시간으로 상태 변경을 구독하여 화면을 갱신하기 위함입니다. 또한 내부 상태 변수를 Dictionary<FactoryStatusType, float>로 추상화하여 상태의 유연한 관리와 전파를 용이하게 하였습니다.
-
-### 7. 벌금 정책 및 파산 게이지 관리 일원화
-
-**결정**: 불량품 판매 시 고정 벌금액 대신 **아이템 가치의 3배 차감**으로 강화하고, 즉발성 파산바 페널티 대신 `FactoryStatus`의 `Update()` 루프를 통해 돈이 마이너스 상태일 때 마이너스 자금 비율에 비례해 매 프레임 파산 게이지가 자연 가산(natural penalty)되도록 일원화함.
 
 ### 6. Machine Configure(BeltTrack) 동적 초기화
 
@@ -86,44 +96,159 @@ EventBus를 경유하면 발행자와 구독자가 서로를 모른 채 통신�
 
 **이유**: 씬 구성 단계에서 인스펙터 레퍼런스를 미리 잡아두는 방식은 정적 배치에 유리하지만, 게임 런타임 중에 GameManager가 기계를 동적으로 인스턴스화하고 벨트의 특정 슬롯에 동적으로 임포트/배치할 때 인스펙터 연결이 불가능합니다. `Configure()` 메서드를 통한 의존성 주입 구조를 도입함으로써 씬 배치 및 런타임 동적 생성을 모두 깔끔하게 지원할 수 있게 됩니다.
 
----
+### 7. 벌금 정책 및 파산 게이지 관리 일원화
 
-## Communication Flow
-
-```
-ItemSpawner ──(spawnItem)──► BeltTrack ──(아이템 끝 도달)──► SellManager
-                                  │
-                             Machine들 (Update() 최인접 체크 
-                                  │    + OnTriggerStay() 물리 충돌 가공)
-                                  ▼
-                              Item 강화
-
-SellManager ──(ItemSoldEvent)──► EventBus ──► RoundManager
-                                          └──► UI Layer (Snapshot)
-
-RoundManager ──(RoundEndEvent)──► EventBus ──► FactoryStatus
-                                                  │
-                                                  ▼ (Observer 패턴 전파)
-                                              UI Layer (실시간 화면 갱신)
-```
+**결정**: 불량품 판매 시 고정 벌금액 대신 **아이템 가치 비례 차감**으로 강화하고, 즉발성 파산바 페널티 대신 `FactoryStatus`의 `Update()` 루프를 통해 돈이 마이너스 상태일 때 마이너스 자금 비율에 비례해 매 프레임 파산 게이지가 자연 가산(natural penalty)되도록 일원화함.
 
 ---
 
-## Class Responsibilities
+## FrontEnd Design
+
+### 영역별 책임
+
+| 영역 | 클래스 | 책임 |
+|---|---|---|
+| `ObserverPattern/` | `ISubject`/`IObserver` + 파생 6쌍 | 레이어 간·UI 내부 통지 인터페이스 정의 |
+| `UI/UIView/` | `UIView` + Text/Slider/Button 파생, `UIUpdateArgs` 계열 | `UIUpdateArgs`를 받아 개별 위젯(TMP 텍스트, 슬라이더) 갱신 |
+| `UI/` | `FactoryStatusUI`, `RoundUI` | 백엔드 Subject 구독, 받은 값을 UIView들로 분배 |
+| `UI/MachineUI/UIPanel/` | `UIPanelBase` 파생(MachineSelectUI, MachineModifyUI, TrackModifyUI) | 블록 선택 시 열리는 패널. 블록 상태 표시 + 버튼 입력 처리 |
+| `UI/MachineUI/UIContents/` | `UIPanelButtonBase` 파생 버튼, 패널용 UIView 파생 | 버튼 클릭을 Subject로 패널에 통지 |
+| `BeltBlock/` | `BlockBase` 파생(BeltBlock, TrackBlock, SellBlock), `BeltBlockManager` | 씬 상의 선택 가능한 블록. 기계 설치/판매/강화, 트랙 강화, 판매 지점 감지 |
+| `InteractEvent/` | `BlockSelect`, `CameraMove` | 마우스 레이캐스트로 블록 선택→패널 표시, 카메라 조작 |
+| `MachineData/` | `MachineManager`, `MachineInfo(List)` (ScriptableObject) | 기계 타입→프리팹 매핑 데이터 제공 |
+
+### F1. Block 시스템 — 선택 가능한 씬 오브젝트의 공통화
+
+**결정**: 씬에서 클릭으로 선택되는 모든 오브젝트(기계 슬롯, 트랙, 판매 지점)를
+`BlockBase` 추상 클래스로 통일하고, 블록마다 `UIType()`으로 자신이 열어야 할 패널
+종류(`BlockUIType`)를 선언하게 함
+
+**이유**: `BlockSelect`는 레이캐스트로 `BlockBase` 하나만 찾으면 되고, 어떤 패널을 열지는
+블록 스스로 답한다. 새 블록 종류를 추가할 때 BlockSelect를 수정할 필요가 없다 (OCP).
+
+**구매/지불 로직의 위치**: 기계 설치·강화·판매(`BeltBlock`), 트랙 강화(`TrackBlock`)의
+비용 지불은 블록이 `FactoryStatus.ModifyMoney()`를 직접 호출해 처리한다. UI 패널은
+버튼 입력을 블록 메서드 호출로 변환만 한다.
+
+### F2. 패널-버튼 Observer 구조
+
+**결정**: 버튼(`UIPanelButtonBase` = IUIPanelButtonSubject)이 클릭 시 자신을 구독 중인
+패널(`UIPanelBase` = IUIPanelButtonObserver)에 통지하고, 패널이 버튼 타입으로 분기해
+대상 블록의 메서드를 호출
+
+**이유**: Unity Button의 onClick을 인스펙터에 직접 묶는 대신 코드에서 옵저버로 연결해,
+패널이 어떤 버튼이 눌렸는지(타입 매칭)와 현재 대상 블록(TargetBlock)을 함께 알 수 있다.
+
+### F3. UIView + UIUpdateArgs — 위젯 갱신의 단일 통로
+
+**결정**: 모든 위젯 갱신은 `UIView.SetValue(UIUpdateArgs)` 하나로 통일.
+값 종류별 파생(`TextUpdateArgs`, `SliderUpdateArgs`)과 위젯별 파생(TextUIView 계열,
+SliderUIView 계열)으로 확장
+
+**이유**: 상위 UI(FactoryStatusUI, RoundUI, 패널)는 위젯의 구체 타입을 모른 채
+UIView 리스트에 값만 흘려보내면 된다. 라벨 접두/접미사는 파생 클래스(`MoneyUIView` 등)가
+Awake에서 설정한다.
+
+### F4. MachineData — ScriptableObject 기반 프리팹 매핑
+
+**결정**: 기계 타입→프리팹 매핑을 `MachineInfo`/`MachineInfoList` ScriptableObject 에셋으로
+관리하고, `MachineManager` 싱글톤이 Dictionary로 캐시해 제공
+
+**이유**: 새 기계 추가 시 코드 수정 없이 에셋 추가만으로 확장 가능. 씬과 분리된
+데이터 에셋이라 브랜치 충돌도 적다.
+
+---
+
+## Layer Bridge (Backend ↔ FrontEnd)
+
+백엔드 상태 → UI 갱신은 `FrontEnd/ObserverPattern/`의 Subject/Observer 쌍으로 연결된다:
+
+| Subject | Observer | 전달 내용 |
+|---|---|---|
+| `FactoryStatus : IFactoryStatusSubject` (백엔드) | `FactoryStatusUI : IFactoryStatusObserver` | `FactoryStatusType` + `UIUpdateArgs` (돈/브랜드/파산바) |
+| `RoundManager : IRoundSubject` (백엔드) | `RoundUI : IRoundObserver` | `RoundParameters` (라운드 번호, 남은 시간, 목표/현재 AP) |
+| `BeltTrack : IBeltTrackLevelSubject` (백엔드) | `ItemSpawner` (백엔드), `BeltBlockManager` (FrontEnd) | 벨트 레벨업 통지 → 스폰 강화 / 블록 추가 |
+| `SellBlock : ISellBlockSubject` (FrontEnd) | `BeltTrack : ISellBlockObserver` (백엔드) | 판매 지점 도달 아이템 (OnTriggerEnter 감지) |
+| `BlockBase : IBlockSubject` (FrontEnd) | `UIPanelBase : IBlockObserver` (FrontEnd) | 블록 상태 변경 → 패널 텍스트 갱신 |
+| `UIPanelButtonBase : IUIPanelButtonSubject` (FrontEnd) | `UIPanelBase : IUIPanelButtonObserver` (FrontEnd) | 버튼 클릭 |
+
+**규칙**: Observer는 `Start()`에서 `RegisterObserver`, `OnDestroy()`에서
+`UnregisterObserver`를 반드시 호출할 것.
+
+### Communication Flow
+
+```
+ItemSpawner ──(item 프리팹 Instantiate + AddItem)──► BeltTrack
+                                                        │ Update()마다 아이템 이동
+                                                   Machine들 (Update() 최인접 추적
+                                                        │     + OnTriggerStay() 충돌 가공)
+                                                        ▼
+                                                    Item 강화 (불량 발생 가능)
+
+SellBlock(FrontEnd) ──OnTriggerEnter──► BeltTrack ──► SellManager.SellItem()
+SellManager ──ModifyMoney / AddBrandPoints──► FactoryStatus
+            └─(ItemSoldEvent)──► EventBus ──► RoundManager (판매 AP 집계)
+
+RoundManager ──라운드 정산(보상/벌금)──► FactoryStatus
+             └─(RoundEndEvent)──► EventBus
+
+FactoryStatus ──(IFactoryStatusSubject)──► FactoryStatusUI ──► UIView들
+RoundManager  ──(IRoundSubject)─────────► RoundUI ──► RoundUIView들
+BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManager
+
+[입력] BlockSelect ──레이캐스트──► BlockBase.UIType() ──► UIPanelBase.OpenUI()
+       패널 버튼 클릭 ──(IUIPanelButtonSubject)──► 패널 ──► 블록 메서드 호출
+```
+
+---
+
+## Class Responsibilities (Backend)
 
 | 클래스 | 단일 책임 | 변경 이유 |
 |---|---|---|
-| `BeltTrack` | 아이템 이동 및 기계 공간 관리 | 벨트 이동 로직 변경 시 |
-| `ItemSpawner` | 스폰 타이밍 및 아이템 인스턴스 생성 | 스폰 로직 변경 시 |
-| `SellManager` | 가격 계산 및 판매 처리 | 판매 공식 변경 시 |
-| `RoundManager` | 라운드 타이머, 기준치, 보상/패널티 | 라운드 규칙 변경 시 |
-| `GameManager` | 씬 라이프사이클, IManager 조율 | 게임 진입/종료 흐름 변경 시 |
-| `FactoryStatus` | 전역 상태 읽기/쓰기 | 전역 상태 항목 추가/제거 시 |
+| `BeltTrack` | 아이템 이동, 기계 공간 관리, 판매 지점 도달 처리 | 벨트 이동 로직 변경 시 |
+| `ItemSpawner` | 스폰 타이밍 및 아이템 프리팹 인스턴스 생성 | 스폰 로직 변경 시 |
+| `SellManager` | 가격 계산, 판매/벌금 처리, ItemSoldEvent 발행 | 판매 공식 변경 시 |
+| `RoundManager` | 라운드 타이머, 평균 AP 기준치, 보상/패널티 | 라운드 규칙 변경 시 |
+| `GameManager` | 씬 라이프사이클, 기계 배치/제거/강화, IManager 조율 | 게임 진입/종료 흐름 변경 시 |
+| `FactoryStatus` | 전역 상태 읽기/쓰기 + 변경 통지 + 파산바 자연 가감 | 전역 상태 항목 추가/제거 시 |
 | `EventBus` | 이벤트 publish/subscribe | 이벤트 시스템 교체 시 |
+| `Item` 계열 | 스탯 보유/강화/가격 계산 + 자체 시각 표현 | 아이템 스탯·불량 규칙 변경 시 |
+| `Machine` 계열 | 근접 아이템 스탯 강화 (Grinder=AP·불량가능, Welder=DU, Painter=SP·불량가능) | 강화 규칙 변경 시 |
 
 ---
 
-## UML Diagram
+## 알려진 어긋남 (정리 필요)
 
-백엔드 클래스 다이어그램은 `BACKEND.puml`을 참고하라.
-렌더링된 PNG는 `docs/uml/BACKEND.png`에서 확인할 수 있다 (push 시 자동 생성).
+코드가 본 문서/AGENTS.md의 원칙과 어긋나 있는 지점. 새 작업 시 악화시키지 말 것.
+
+1. **백엔드 → FrontEnd 역방향 의존**: `BeltTrack`이 FrontEnd의 `BlockBase`(`_sellBlock`)를
+   SerializeField로 참조하고 `ISellBlockObserver`를 구현한다. `RoundManager`도 FrontEnd의
+   `UIUpdateArgs`/`RoundParameters`를 직접 생성한다. 브리지 인터페이스와 UIUpdateArgs가
+   FrontEnd 폴더에 있어 백엔드가 UI 레이어 코드 없이 컴파일되지 않는다 — 중립 위치(예:
+   `Assets/Scripts/Common/`)로 옮기는 정리가 필요. 폴더 재편이므로 승인 후 진행할 것
+2. **싱글톤 제한 위반**: 원칙은 FactoryStatus, EventBus 둘만인데
+   `RoundManager.Instance`, `SellManager.Instance`, `MachineManager.Instance`가 추가됨.
+   사용처가 있어 단순 삭제 불가(RoundUI, BeltTrack, BeltBlock이 의존) — 인스펙터 참조로
+   바꾸려면 씬 재연결 필요
+3. **`FindAnyObjectByType` 사용**: `GameManager.Awake()`가 RoundManager/SellManager를
+   씬에서 검색한다 (AGENTS.md: 인스펙터 레퍼런스 사용 원칙). 수정 시 씬 재연결 필요
+4. **1파일 1클래스 위반**: `FactoryStatus.cs`에 `Operation` enum,
+   `UIView.cs`에 `UIUpdateArgs` 계열 3클래스, `RoundUI.cs`에 `RoundParameters`,
+   `BlockSelect.cs`에 `BlockUIType` enum 동거.
+   파일명-클래스명 불일치도 1건: `MachineModifybutton_Sell.cs` ↔ `MachineModifyButton_Sell`
+5. **불필요/위험 using**: `SellManager`의 `UnityEditor.UIElements`(에디터 외 빌드 깨짐),
+   `BeltTrack`/`FactoryStatus`/`BeltBlockManager`의 `NUnit.Framework`,
+   `ItemSpawner`의 `Newtonsoft.Json`, `Machine`의 `Unity.IO.LowLevel.Unsafe`,
+   여러 파일의 `Unity.VisualScripting`, `MachineModifyUI`의
+   `using static UnityEngine.Rendering.DebugUI` 등 — 모두 미사용이므로 제거 필요
+
+---
+
+## UML Diagrams
+
+- 백엔드: `BACKEND.puml` → `docs/uml/BACKEND.png`
+- 프런트엔드: `FRONTEND.puml` → `docs/uml/FRONTEND.png`
+- 통합 PDF: 저장소 루트 `UML.pdf` — 두 다이어그램이 페이지로 포함됨
+
+PNG/PDF는 `.puml` 파일 push 시 GitHub Actions가 자동 생성한다 (`.github/workflows/uml.yml`).
