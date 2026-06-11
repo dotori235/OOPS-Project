@@ -37,10 +37,10 @@ unity -batchmode -quit -projectPath . -buildTarget StandaloneWindows64 -logFile 
 > ```bash
 > find Assets/Scripts -type f -name "*.cs" | sort
 > find Assets/Scenes  -type f -name "*.unity"
-> find Assets/Prefabs -type f -name "*.prefab"
+> find Assets/Prefab  -type f -name "*.prefab"
 > ```
 
-<!-- STRUCTURE: 에이전트가 초기화 후 아래에 실제 구조를 작성 -->
+<!-- STRUCTURE: 마지막 갱신 2026-06-11 (main, PR #8·#9 머지 직후 기준) -->
 
 ```
 Assets/Prefab/BeltBlock.prefab
@@ -51,10 +51,16 @@ Assets/Prefab/Machine.prefab
 Assets/Prefab/MachineSelectButton.prefab
 Assets/Prefab/Painter.prefab
 Assets/Prefab/Welder.prefab
+
 Assets/Scenes/BackEnd.unity
 Assets/Scenes/FrontEnd.unity
 Assets/Scenes/SampleScene.unity
 Assets/Scenes/SampleUIScene.unity
+
+Assets/Scripts/BACKEND.puml
+Assets/Scripts/FRONTEND.puml
+Assets/Scripts/DESIGN.md
+
 Assets/Scripts/Backend/BankruptcyEvent.cs
 Assets/Scripts/Backend/BeltTrack.cs
 Assets/Scripts/Backend/EventBus.cs
@@ -66,6 +72,7 @@ Assets/Scripts/Backend/GameManager.cs
 Assets/Scripts/Backend/Grinder.cs
 Assets/Scripts/Backend/IGameEventListener.cs
 Assets/Scripts/Backend/IManager.cs
+Assets/Scripts/Backend/IMPLEMENTATION_REPORT.md
 Assets/Scripts/Backend/ISellable.cs
 Assets/Scripts/Backend/Item.cs
 Assets/Scripts/Backend/ItemSoldEvent.cs
@@ -81,25 +88,53 @@ Assets/Scripts/Backend/SellManager.cs
 Assets/Scripts/Backend/StandardItem.cs
 Assets/Scripts/Backend/StatType.cs
 Assets/Scripts/Backend/Welder.cs
-Assets/Scripts/FrontEnd/BankruptcyUIView.cs
-Assets/Scripts/FrontEnd/BeltBlock.cs
-Assets/Scripts/FrontEnd/BeltBlockManager.cs
-Assets/Scripts/FrontEnd/BeltSelect.cs
-Assets/Scripts/FrontEnd/BrandLevelUIView.cs
-Assets/Scripts/FrontEnd/BrandPointUIView.cs
-Assets/Scripts/FrontEnd/CameraMove.cs
-Assets/Scripts/FrontEnd/FactoryStatusUI.cs
-Assets/Scripts/FrontEnd/IObserver.cs
-Assets/Scripts/FrontEnd/ISubject.cs
-Assets/Scripts/FrontEnd/MachineInfo.cs
-Assets/Scripts/FrontEnd/MachineInfoList.cs
-Assets/Scripts/FrontEnd/MachineManager.cs
-Assets/Scripts/FrontEnd/MachineModifyUI.cs
-Assets/Scripts/FrontEnd/MachineSelectButton.cs
-Assets/Scripts/FrontEnd/MachineSelectUI.cs
-Assets/Scripts/FrontEnd/MoneyUIView.cs
-Assets/Scripts/FrontEnd/UIType.cs
-Assets/Scripts/FrontEnd/UIView.cs
+
+Assets/Scripts/FrontEnd/BeltBlock/BeltBlock.cs
+Assets/Scripts/FrontEnd/BeltBlock/BeltBlockManager.cs
+Assets/Scripts/FrontEnd/BeltBlock/BlockBase.cs
+Assets/Scripts/FrontEnd/BeltBlock/SellBlock.cs
+Assets/Scripts/FrontEnd/BeltBlock/TrackBlock.cs
+Assets/Scripts/FrontEnd/InteractEvent/BlockSelect.cs
+Assets/Scripts/FrontEnd/InteractEvent/CameraMove.cs
+Assets/Scripts/FrontEnd/MachineData/MachineManager.cs
+Assets/Scripts/FrontEnd/MachineData/MachineInfoList/MachineInfoList.cs
+Assets/Scripts/FrontEnd/MachineData/MachineInfoList/MachineInfoList.asset
+Assets/Scripts/FrontEnd/MachineData/MachineInfos/MachineInfo.cs
+Assets/Scripts/FrontEnd/MachineData/MachineInfos/Grinder.asset
+Assets/Scripts/FrontEnd/MachineData/MachineInfos/Painter.asset
+Assets/Scripts/FrontEnd/MachineData/MachineInfos/Welder.asset
+Assets/Scripts/FrontEnd/ObserverPattern/IObserver.cs
+Assets/Scripts/FrontEnd/ObserverPattern/ISubject.cs
+Assets/Scripts/FrontEnd/UI/FactoryStatusUI.cs
+Assets/Scripts/FrontEnd/UI/RoundUI.cs
+Assets/Scripts/FrontEnd/UI/RoundUIView_CurrentAP.cs
+Assets/Scripts/FrontEnd/UI/RoundUIView_RoundNum.cs
+Assets/Scripts/FrontEnd/UI/RoundUIView_TargetAP.cs
+Assets/Scripts/FrontEnd/UI/RoundUIView_TimeLimit.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyButton.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyButton_Levelup.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifybutton_Sell.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_Level.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_LevelUpPrice.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_MachineType.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineSelectButton.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/TrackModifyButton_LevelUp.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/TrackModifyUIView_Level.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/TrackModifyUIView_LevelUpPrice.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/UIPanelButtonBase.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIPanel/MachineModifyUI.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIPanel/MachineSelectUI.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIPanel/TrackModifyUI.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIPanel/UIPanelBase.cs
+Assets/Scripts/FrontEnd/UI/UIView/BankruptcyUIView.cs
+Assets/Scripts/FrontEnd/UI/UIView/BrandLevelUIView.cs
+Assets/Scripts/FrontEnd/UI/UIView/BrandPointUIView.cs
+Assets/Scripts/FrontEnd/UI/UIView/ButtonUIView.cs
+Assets/Scripts/FrontEnd/UI/UIView/MoneyUIView.cs
+Assets/Scripts/FrontEnd/UI/UIView/SliderUIView.cs
+Assets/Scripts/FrontEnd/UI/UIView/TextUIView.cs
+Assets/Scripts/FrontEnd/UI/UIView/UIType.cs
+Assets/Scripts/FrontEnd/UI/UIView/UIView.cs
 ```
 
 <!-- /STRUCTURE -->
@@ -201,6 +236,6 @@ Assets/Scripts/FrontEnd/UIView.cs
 - [ ] MonoBehaviour인 경우: `OnDestroy()`에서 이벤트 구독 해제
 - [ ] 네이밍만으로 의도가 드러남 (주석 없이 읽히는가)
 - [ ] 함수가 하나의 일만 하고 있음
-- [ ] 클래스 생성/수정 시 BACKEND.puml도 함께 업데이트됨
+- [ ] 클래스 생성/수정 시 해당 레이어의 puml도 함께 업데이트됨 (Backend → BACKEND.puml, FrontEnd → FRONTEND.puml)
 - [ ] `DESIGN.md`의 책임 범위를 벗어나지 않음
 - [ ] 컴파일 에러 없음 (Unity MCP 확인)
