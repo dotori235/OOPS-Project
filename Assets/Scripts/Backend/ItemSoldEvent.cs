@@ -4,15 +4,13 @@ namespace Backend
     {
         public float Price { get; private set; }
         public bool IsDefective { get; private set; }
-        public float Splendor { get; private set; }
-        public float AttackPower { get; private set; }
+        public Stat Stats { get; private set; }
 
-        public ItemSoldEvent(float price, bool isDefective, float splendor, float attackPower)
+        public ItemSoldEvent(float price, bool isDefective, Stat stats)
         {
             Price = price;
             IsDefective = isDefective;
-            Splendor = splendor;
-            AttackPower = attackPower;
+            Stats = stats ?? new Stat();
         }
     }
 }

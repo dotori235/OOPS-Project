@@ -37,7 +37,7 @@ interface IManager {
 
 interface IUpgradable {
   +Upgrade(stat: StatType, amount: float): void
-  +GetStats(): Dict~StatType, float~
+  +GetStats(): Stat
 }
 
 interface ISellable {
@@ -97,8 +97,7 @@ class RoundEndEvent {
 class ItemSoldEvent {
   +Price: float <<get>>
   +IsDefective: bool <<get>>
-  +Splendor: float <<get>>
-  +AttackPower: float <<get>>
+  +Stats: Stat <<get>>
 }
 
 class MarketEvent {
@@ -132,26 +131,54 @@ EventBus "1" o-- "0..*" IGameEventListener : _listeners
 EventBus ..> GameEvent : dispatches
 
 ' ══════════════════════════════════════════════
+' STAT  (Pure C#, [Serializable])
+' ══════════════════════════════════════════════
+
+class Stat {
+  -_entries: List~StatEntry~ <<SerializeField>>
+  -_values: Dict~StatType, float~
+  --
+  +Get(type: StatType): float
+  +Set(type: StatType, value: float): void
+  +Add(type: StatType, amount: float): void
+  +Clone(): Stat
+}
+
+class StatEntry << struct >> {
+  -_type: StatType <<SerializeField>>
+  -_value: float <<SerializeField>>
+  --
+  +Type: StatType <<get>>
+  +Value: float <<get>>
+}
+
+Stat "1" *-- "0..*" StatEntry : _entries (직렬화용)
+Stat ..> StatType
+
+note bottom of Stat
+  스탯 추가 = StatType enum 멤버 추가
+  + Item.PriceCoefficients 계수 등록만으로 끝 (OCP).
+  인스펙터에는 StatEntry 리스트로 노출,
+  런타임은 Dictionary로 동작 (ISerializationCallbackReceiver)
+end note
+
+' ══════════════════════════════════════════════
 ' ITEM  (MonoBehaviour — 프리팹에 부착)
 ' ══════════════════════════════════════════════
 
 abstract class Item << MonoBehaviour >> {
-  -_attackPower: float
-  -_durability: float
-  -_splendor: float
+  -PriceCoefficients: Dict~StatType, float~ {static}
+  -_stats: Stat
   -_isDefective: bool
   -_position: Vector3
   --
-  +AttackPower: float <<get, protected set>>
-  +Durability: float <<get, protected set>>
-  +Splendor: float <<get, protected set>>
   +IsDefective: bool <<get, protected set>>
   +Position: Vector3 <<get, set>>
   --
-  +SetValue(ap: float, du: float, sp: float): void
+  +Initialize(stats: Stat): void
   +MoveItem(dp: Vector3): void
   +Upgrade(stat: StatType, amount: float): void
-  +GetStats(): Dict~StatType, float~
+  +GetStats(): Stat
   +CalculatePrice(spMult: float): float
   +CalculateDefectChance(): float
   +MakeDefective(): void
@@ -164,6 +191,7 @@ class StandardItem << MonoBehaviour >> {
 Item <|-- StandardItem
 Item ..|> IUpgradable
 Item ..|> ISellable
+Item "1" *-- "1" Stat : _stats
 
 ' ══════════════════════════════════════════════
 ' MACHINE  (MonoBehaviour)
@@ -269,16 +297,12 @@ BeltTrack "1" o-- "1" SellManager : _sellManager
 class ItemSpawner << MonoBehaviour >> {
   -_beltTrack: BeltTrack <<SerializeField>>
   -_itemPrefab: GameObject <<SerializeField>>
-  -_baseAP: float <<SerializeField>>
-  -_baseDU: float <<SerializeField>>
-  -_baseSP: float <<SerializeField>>
+  -_baseStat: Stat <<SerializeField>>
   -_spawnInterval: float <<SerializeField>>
   -_timer: float
   -_level: int
   --
-  +BaseAP: float <<get, private set>>
-  +BaseDU: float <<get, private set>>
-  +BaseSP: float <<get, private set>>
+  +BaseStat: Stat <<get, private set>>
   +SpawnInterval: float <<get, private set>>
   --
   +ShouldSpawn(): bool
@@ -288,7 +312,8 @@ class ItemSpawner << MonoBehaviour >> {
 }
 
 ItemSpawner "1" o-- "1" BeltTrack : _beltTrack
-ItemSpawner ..> Item : instantiates prefab
+ItemSpawner "1" *-- "1" Stat : _baseStat
+ItemSpawner ..> Item : instantiates prefab + Initialize(baseStat.Clone())
 
 ' ══════════════════════════════════════════════
 ' FACTORY STATUS  (MonoBehaviour singleton)

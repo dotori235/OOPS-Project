@@ -100,6 +100,21 @@ EventBus를 경유하면 발행자와 구독자가 서로를 모른 채 통신�
 
 **결정**: 불량품 판매 시 고정 벌금액 대신 **아이템 가치 비례 차감**으로 강화하고, 즉발성 파산바 페널티 대신 `FactoryStatus`의 `Update()` 루프를 통해 돈이 마이너스 상태일 때 마이너스 자금 비율에 비례해 매 프레임 파산 게이지가 자연 가산(natural penalty)되도록 일원화함.
 
+### 8. Stat 클래스 — 스탯의 단일 표현 (OCP)
+
+**결정**: 아이템 스탯을 개별 float 필드(AP/DU/SP) 대신 `Stat` 클래스(Pure C#,
+`[Serializable]`, 내부 `Dictionary<StatType, float>`)로 일원화. `Item`과 `ItemSpawner`가
+Stat을 has-a로 보유하고, 스폰 시 `item.Initialize(_baseStat.Clone())`으로 값을 전달.
+`ItemSoldEvent`도 개별 프로퍼티 대신 Stat 스냅샷을 탑재한다.
+
+**이유**: 스탯을 하나 추가할 때 Item(필드+switch 2곳)·ItemSpawner·SellManager·
+ItemSoldEvent·RoundManager까지 수정이 번졌다(OCP 위반). Stat 도입 후에는
+`StatType` enum 멤버 추가 + `Item.PriceCoefficients` 계수 등록만으로 끝난다.
+가격 공식도 StatType→계수 매핑 합산으로 일반화했다.
+
+**직렬화**: 인스펙터에는 `StatEntry{StatType, float}` 리스트로 노출하고
+`ISerializationCallbackReceiver`로 Dictionary와 동기화한다 (Dictionary는 Unity 직렬화 불가).
+
 ---
 
 ## FrontEnd Design

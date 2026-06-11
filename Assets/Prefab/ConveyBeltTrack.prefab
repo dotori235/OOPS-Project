@@ -312,9 +312,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Backend.ItemSpawner
   _beltTrack: {fileID: 4017567953938251928}
   _itemPrefab: {fileID: 3111932895868470651, guid: 9e49af613aaaa1a48818f84477a9579e, type: 3}
-  _baseAP: 10
-  _baseDU: 0
-  _baseSP: 0
+  _baseStat:
+    _entries:
+    - _type: 0
+      _value: 10
+    - _type: 1
+      _value: 0
+    - _type: 2
+      _value: 0
   _spawnInterval: 3
 --- !u!114 &5266214940436887463
 MonoBehaviour:

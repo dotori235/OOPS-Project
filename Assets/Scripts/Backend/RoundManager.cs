@@ -64,7 +64,7 @@ namespace Backend
             {
                 if (!soldEvent.IsDefective)
                 {
-                    _soldItemAPs.Add(soldEvent.AttackPower);
+                    _soldItemAPs.Add(soldEvent.Stats.Get(StatType.AttackPower));
                     if (_soldItemAPs.Count >= 5)
                     {
                         _soldItemAPs.RemoveAt(0);

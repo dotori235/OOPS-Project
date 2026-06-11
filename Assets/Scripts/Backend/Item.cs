@@ -3,71 +3,61 @@ using UnityEngine;
 
 namespace Backend
 {
-    public abstract class Item : MonoBehaviour,IUpgradable, ISellable
+    public abstract class Item : MonoBehaviour, IUpgradable, ISellable
     {
-        private float _attackPower;
-        private float _durability;
-        private float _splendor;
+        // 가격 계수: 스탯 추가 시 여기에 계수만 등록하면 된다 (OCP)
+        private static readonly Dictionary<StatType, float> PriceCoefficients = new Dictionary<StatType, float>
+        {
+            { StatType.AttackPower, 2.0f },
+            { StatType.Durability,  1.0f },
+            { StatType.Splendor,    1.0f },
+        };
+
+        private Stat _stats = new Stat();
         private bool _isDefective;
         private Vector3 _position;
 
-        public float AttackPower { get => _attackPower; protected set => _attackPower = value; }
-        public float Durability { get => _durability; protected set => _durability = value; }
-        public float Splendor { get => _splendor; protected set => _splendor = value; }
         public bool IsDefective { get => _isDefective; protected set => _isDefective = value; }
         public Vector3 Position { get => _position; set => _position = value; }
-        public void SetValue(float attackPower, float durability, float splendor)
+
+        public void Initialize(Stat stats)
         {
-            _attackPower = attackPower;
-            _durability = durability;
-            _splendor = splendor;
+            _stats = stats ?? new Stat();
             _isDefective = false;
         }
-        
+
         public void MoveItem(Vector3 dp)
         {
             _position += dp;
             transform.position = _position;
         }
+
         public virtual void Upgrade(StatType stat, float amount)
         {
-            
-            switch (stat)
-            {
-                case StatType.AttackPower:
-                    _attackPower += amount;
-                    break;
-                case StatType.Durability:
-                    _durability += amount;
-                    break;
-                case StatType.Splendor:
-                    _splendor += amount;
-                    break;
-            }
+            _stats.Add(stat, amount);
         }
 
-        public virtual Dictionary<StatType, float> GetStats()
+        public virtual Stat GetStats()
         {
-            return new Dictionary<StatType, float>
-            {
-                { StatType.AttackPower, _attackPower },
-                { StatType.Durability, _durability },
-                { StatType.Splendor, _splendor }
-            };
+            return _stats.Clone();
         }
 
         public virtual float CalculatePrice(float spMult)
         {
-            
-            float basePrice = _attackPower * 2.0f + _durability * 1.0f + _splendor*(1.0f+spMult);
+            float basePrice = 0f;
+            foreach (var coefficient in PriceCoefficients)
+            {
+                basePrice += _stats.Get(coefficient.Key) * coefficient.Value;
+            }
+            basePrice += _stats.Get(StatType.Splendor) * spMult;
             return basePrice;
         }
 
         public virtual float CalculateDefectChance()
         {
             // Simple defect chance formula based on durability
-            float chance = 0.07f * (5/(_durability + 5));
-            return UnityEngine.Mathf.Clamp(chance, 0.01f, 0.9f);
+            float chance = 0.07f * (5 / (_stats.Get(StatType.Durability) + 5));
+            return Mathf.Clamp(chance, 0.01f, 0.9f);
         }
 
         public void MakeDefective()
@@ -75,6 +65,7 @@ namespace Backend
             _isDefective = true;
             transform.GetComponent<Renderer>().material.color = Color.red;
         }
+
         public void SellItem()
         {
             Destroy(gameObject);

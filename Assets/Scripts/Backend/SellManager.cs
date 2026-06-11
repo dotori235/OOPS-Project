@@ -62,16 +62,14 @@ namespace Backend
             }
             FactoryStatus.GetInstance().ModifyMoney(price);
 
-            float splendorValue = 0f;
-            float attackPowerValue = 0f;
-            if (item is Item concreteItem)
+            Stat stats = new Stat();
+            if (item is IUpgradable upgradable)
             {
-                splendorValue = concreteItem.Splendor;
-                attackPowerValue = concreteItem.AttackPower;
-                FactoryStatus.GetInstance().AddBrandPoints(splendorValue);
+                stats = upgradable.GetStats();
+                FactoryStatus.GetInstance().AddBrandPoints(stats.Get(StatType.Splendor));
             }
             item.SellItem();
-            EventBus.GetInstance().Publish(new ItemSoldEvent(price, false, splendorValue, attackPowerValue));
+            EventBus.GetInstance().Publish(new ItemSoldEvent(price, false, stats));
         }
 
         public void ApplyFine(ISellable item, float p)
@@ -80,7 +78,7 @@ namespace Backend
             FactoryStatus.GetInstance().ModifyMoney(penaltyMoney);
             //FactoryStatus.GetInstance().UpdateBankruptcyBar(bankruptcyDelta);
 
-            EventBus.GetInstance().Publish(new ItemSoldEvent(0f, true, 0f, 0f));
+            EventBus.GetInstance().Publish(new ItemSoldEvent(0f, true, new Stat()));
         }
     }
 }
