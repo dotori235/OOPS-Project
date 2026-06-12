@@ -1,12 +1,10 @@
 using System.Collections;
-using Unity.IO.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace Backend
 {
     public abstract class Machine : MonoBehaviour
     {
-        [SerializeField] private BeltTrack _beltTrack;
         [SerializeField] private float _upgradeInterval = 1f;
         private int _level = 1;
         private float _cooldown = 0f;
@@ -16,7 +14,7 @@ namespace Backend
         public int Level { get => _level; private set => _level = value; }
         public float UpgradeInterval { get => _upgradeInterval; private set => _upgradeInterval = value; }
         public float UpgradeAmount { get => _upgradeAmount; private set => _upgradeAmount = value; }
-        
+
         public static float InstallPrice { get => 200f; }
         public static float LevelUpPriceCoeff { get => 100; }
         private void Start()
@@ -26,23 +24,9 @@ namespace Backend
         }
         private void Update()
         {
-            
             if (_cooldown > 0f)
             {
-                
                 _cooldown -= Time.deltaTime;
-                return;
-            }
-
-            if (_beltTrack == null) return;
-
-            // Get nearest item based on the machine's X position as the tracking position
-            Item target = _beltTrack.GetNearestItem(transform.position.x);
-
-            if (target != null)
-            {
-                UpgradeItem(target);
-                _cooldown = _upgradeInterval;
             }
         }
         public MachineType GetMachineType()
@@ -69,11 +53,6 @@ namespace Backend
                     item.MakeDefective();
                 }
             }
-        }
-
-        public virtual void Configure(BeltTrack beltTrack)
-        {
-            _beltTrack = beltTrack;
         }
 
         public virtual void LevelUp()

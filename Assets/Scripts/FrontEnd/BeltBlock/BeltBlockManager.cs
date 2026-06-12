@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using UnityEngine;
 using Backend;
 using System.Collections.Generic;
@@ -15,7 +14,7 @@ public class BeltBlockManager : MonoBehaviour, IBeltTrackLevelObserver
     private void Start()
     {
         beltTrack.RegisterObserver(this);
-        for(int i = 0; i < beltTrack.GetMachineSpaces(); i++)
+        for(int i = 0; i < beltTrack.MachineSpaces; i++)
         {
             generateBeltBlock();
         }

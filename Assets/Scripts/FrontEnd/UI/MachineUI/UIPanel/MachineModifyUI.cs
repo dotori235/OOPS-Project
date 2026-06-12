@@ -1,8 +1,5 @@
 using Backend;
-using System;
-using Unity.VisualScripting;
 using UnityEngine;
-using static UnityEngine.Rendering.DebugUI;
 
 public class MachineModifyUI : UIPanelBase
 {

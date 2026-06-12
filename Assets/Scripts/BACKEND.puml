@@ -31,13 +31,15 @@ interface IGameEventListener {
   +OnEvent(e: GameEvent): void
 }
 
-interface IManager {
-  +OnEvent(e: GameEvent): void
+interface IGameState {
+  +Enter(): void
+  +Update(): void
+  +Exit(): void
 }
 
 interface IUpgradable {
   +Upgrade(stat: StatType, amount: float): void
-  +GetStats(): Dict~StatType, float~
+  +GetStats(): Stat
 }
 
 interface ISellable {
@@ -97,8 +99,7 @@ class RoundEndEvent {
 class ItemSoldEvent {
   +Price: float <<get>>
   +IsDefective: bool <<get>>
-  +Splendor: float <<get>>
-  +AttackPower: float <<get>>
+  +Stats: Stat <<get>>
 }
 
 class MarketEvent {
@@ -132,26 +133,54 @@ EventBus "1" o-- "0..*" IGameEventListener : _listeners
 EventBus ..> GameEvent : dispatches
 
 ' ══════════════════════════════════════════════
+' STAT  (Pure C#, [Serializable])
+' ══════════════════════════════════════════════
+
+class Stat {
+  -_entries: List~StatEntry~ <<SerializeField>>
+  -_values: Dict~StatType, float~
+  --
+  +Get(type: StatType): float
+  +Set(type: StatType, value: float): void
+  +Add(type: StatType, amount: float): void
+  +Clone(): Stat
+}
+
+class StatEntry << struct >> {
+  -_type: StatType <<SerializeField>>
+  -_value: float <<SerializeField>>
+  --
+  +Type: StatType <<get>>
+  +Value: float <<get>>
+}
+
+Stat "1" *-- "0..*" StatEntry : _entries (직렬화용)
+Stat ..> StatType
+
+note bottom of Stat
+  스탯 추가 = StatType enum 멤버 추가
+  + Item.PriceCoefficients 계수 등록만으로 끝 (OCP).
+  인스펙터에는 StatEntry 리스트로 노출,
+  런타임은 Dictionary로 동작 (ISerializationCallbackReceiver)
+end note
+
+' ══════════════════════════════════════════════
 ' ITEM  (MonoBehaviour — 프리팹에 부착)
 ' ══════════════════════════════════════════════
 
 abstract class Item << MonoBehaviour >> {
-  -_attackPower: float
-  -_durability: float
-  -_splendor: float
+  -PriceCoefficients: Dict~StatType, float~ {static}
+  -_stats: Stat
   -_isDefective: bool
   -_position: Vector3
   --
-  +AttackPower: float <<get, protected set>>
-  +Durability: float <<get, protected set>>
-  +Splendor: float <<get, protected set>>
   +IsDefective: bool <<get, protected set>>
   +Position: Vector3 <<get, set>>
   --
-  +SetValue(ap: float, du: float, sp: float): void
+  +Initialize(stats: Stat): void
   +MoveItem(dp: Vector3): void
   +Upgrade(stat: StatType, amount: float): void
-  +GetStats(): Dict~StatType, float~
+  +GetStats(): Stat
   +CalculatePrice(spMult: float): float
   +CalculateDefectChance(): float
   +MakeDefective(): void
@@ -164,13 +193,13 @@ class StandardItem << MonoBehaviour >> {
 Item <|-- StandardItem
 Item ..|> IUpgradable
 Item ..|> ISellable
+Item "1" *-- "1" Stat : _stats
 
 ' ══════════════════════════════════════════════
 ' MACHINE  (MonoBehaviour)
 ' ══════════════════════════════════════════════
 
 abstract class Machine << MonoBehaviour >> {
-  -_beltTrack: BeltTrack <<SerializeField>>
   -_upgradeInterval: float <<SerializeField>>
   -_level: int
   -_cooldown: float
@@ -183,7 +212,6 @@ abstract class Machine << MonoBehaviour >> {
   +InstallPrice: float <<get>> {static}
   +LevelUpPriceCoeff: float <<get>> {static}
   --
-  +Configure(beltTrack: BeltTrack): void
   +LevelUp(): void
   +GetMachineType(): MachineType
   #SetMachineType(type: MachineType): void
@@ -194,9 +222,9 @@ abstract class Machine << MonoBehaviour >> {
 }
 
 note bottom of Machine
-  가공 경로 2가지: Update()의 GetNearestItem 추적
-  + OnTriggerStay() 물리 충돌. 가공 시 alphaEff
-  코루틴으로 투명도 연출
+  가공 경로는 OnTriggerStay() 물리 충돌 단일.
+  Update()는 쿨다운 감소만 담당.
+  가공 시 alphaEff 코루틴으로 투명도 연출
 end note
 
 class Grinder << MonoBehaviour >> {
@@ -228,32 +256,34 @@ Machine ..> Item : upgrades
 
 class BeltTrack << MonoBehaviour >> {
   -_sellManager: SellManager <<SerializeField>>
-  -_trackLength: float <<SerializeField>>
+  -_tileCount: int <<SerializeField>>
+  -_tileSize: float <<SerializeField>>
   -_sellBlock: BlockBase <<SerializeField>>
   -_level: int
-  -_machineSpaces: int
   -_speed: Vector3
   -_items: List~Item~
-  -_itemPositions: Dict~Item, float~
   -_observers: List~IObserver~
   --
   +Level: int <<get, private set>>
-  +MachineSpaces: int <<get, private set>>
+  +TileCount: int <<get, private set>>
+  +TileSize: float <<get, private set>>
+  +MachineSpaces: int <<get>>
   +Speed: Vector3 <<get, private set>>
-  +TrackLength: float <<get, private set>>
+  +TrackLength: float <<get>>
   +LevelUpPrice: float <<get>>
   --
   +AddItem(item: Item): void
   +RemoveItem(item: Item): void
-  +GetNearestItem(xPosition: float): Item
   +LevelUp(): void
-  +GetMachineSpaces(): int
   +NotifyBeltTrackLevel(): void
   +OnSellBlockReached(item: ISellable): void
 }
 
 note bottom of BeltTrack
   IBeltTrackLevelSubject + ISellBlockObserver 구현 (FRONTEND.puml).
+  타일 수 기반: TrackLength = _tileCount × _tileSize,
+  MachineSpaces = _tileCount, 레벨업 = 타일 +1
+  (판매 타일은 트랙 끝에 1개 추가 배치).
   _sellBlock(FrontEnd BlockBase)을 직접 참조하고
   Start()에서 SellManager.Instance를 사용 — DESIGN.md
   "알려진 어긋남" 참고
@@ -269,16 +299,12 @@ BeltTrack "1" o-- "1" SellManager : _sellManager
 class ItemSpawner << MonoBehaviour >> {
   -_beltTrack: BeltTrack <<SerializeField>>
   -_itemPrefab: GameObject <<SerializeField>>
-  -_baseAP: float <<SerializeField>>
-  -_baseDU: float <<SerializeField>>
-  -_baseSP: float <<SerializeField>>
+  -_baseStat: Stat <<SerializeField>>
   -_spawnInterval: float <<SerializeField>>
   -_timer: float
   -_level: int
   --
-  +BaseAP: float <<get, private set>>
-  +BaseDU: float <<get, private set>>
-  +BaseSP: float <<get, private set>>
+  +BaseStat: Stat <<get, private set>>
   +SpawnInterval: float <<get, private set>>
   --
   +ShouldSpawn(): bool
@@ -288,7 +314,8 @@ class ItemSpawner << MonoBehaviour >> {
 }
 
 ItemSpawner "1" o-- "1" BeltTrack : _beltTrack
-ItemSpawner ..> Item : instantiates prefab
+ItemSpawner "1" *-- "1" Stat : _baseStat
+ItemSpawner ..> Item : instantiates prefab + Initialize(baseStat.Clone())
 
 ' ══════════════════════════════════════════════
 ' FACTORY STATUS  (MonoBehaviour singleton)
@@ -322,7 +349,7 @@ note bottom of FactoryStatus
 end note
 
 ' ══════════════════════════════════════════════
-' ROUND MANAGER  (MonoBehaviour + IManager)
+' ROUND MANAGER  (MonoBehaviour)
 ' ══════════════════════════════════════════════
 
 class RoundManager << (S,#FFD700) MonoBehaviour singleton >> {
@@ -350,13 +377,12 @@ class RoundManager << (S,#FFD700) MonoBehaviour singleton >> {
   +NotifyRound(): void
 }
 
-RoundManager ..|> IManager
 RoundManager ..|> IGameEventListener
 RoundManager ..> EventBus : Subscribe / Publish(RoundEndEvent)
 RoundManager ..> FactoryStatus : ModifyMoney
 
 ' ══════════════════════════════════════════════
-' SELL MANAGER  (MonoBehaviour + IManager)
+' SELL MANAGER  (MonoBehaviour)
 ' ══════════════════════════════════════════════
 
 class SellManager << (S,#FFD700) MonoBehaviour singleton >> {
@@ -375,41 +401,59 @@ class SellManager << (S,#FFD700) MonoBehaviour singleton >> {
   +ApplyFine(item: ISellable, p: float): void
 }
 
-SellManager ..|> IManager
 SellManager ..|> IGameEventListener
 SellManager ..> EventBus : Subscribe / Publish(ItemSoldEvent)
 SellManager ..> FactoryStatus : ModifyMoney / AddBrandPoints
 SellManager ..> ISellable : <<use>> param
 
 ' ══════════════════════════════════════════════
-' GAME MANAGER  (MonoBehaviour)
+' GAME MANAGER  (MonoBehaviour) + 게임 흐름 FSM (Pure C#)
 ' ══════════════════════════════════════════════
 
+class GameStateMachine {
+  -_current: IGameState
+  --
+  +Current: IGameState <<get>>
+  +ChangeState(next: IGameState): void
+  +Update(): void
+}
+
+class ReadyState {
+}
+class PlayingState {
+}
+class PausedState {
+}
+class GameOverState {
+}
+
+IGameState <|.. ReadyState
+IGameState <|.. PlayingState
+IGameState <|.. PausedState
+IGameState <|.. GameOverState
+GameStateMachine o-- IGameState : _current
+
+note bottom of GameStateMachine
+  상태 전이: Ready → Playing ⇄ Paused,
+  Playing → GameOver (BankruptcyEvent 수신 시).
+  Playing.Enter: timeScale=1,
+  Paused/GameOver.Enter: timeScale=0
+end note
+
 class GameManager << MonoBehaviour >> {
-  -_beltTrack: BeltTrack <<SerializeField>>
-  -_itemSpawner: ItemSpawner <<SerializeField>>
-  -_grinderPrefab: GameObject <<SerializeField>>
-  -_welderPrefab: GameObject <<SerializeField>>
-  -_painterPrefab: GameObject <<SerializeField>>
-  -_managers: List~IManager~
-  -_placedMachines: List~Machine~
+  -_stateMachine: GameStateMachine
   --
   +OnEvent(e: GameEvent): void
   +StartGame(): void
   +PauseGame(): void
+  +ResumeGame(): void
   +ResetGame(): void
-  +PlaceMachine(type: MachineType, pos: int): void
-  +LevelUpMachine(pos: int): void
-  +RemoveMachine(pos: int): void
-  +LevelUpBelt(): void
 }
 
 GameManager ..|> IGameEventListener
-GameManager ..> EventBus : Subscribe
-GameManager ..> FactoryStatus : IsGameOver / ResetStatus
-GameManager "1" o-- "1"    BeltTrack   : _beltTrack
-GameManager "1" o-- "1"    ItemSpawner : _itemSpawner
-GameManager "1" o-- "0..*" IManager    : _managers
-GameManager "1" o-- "0..*" Machine     : _placedMachines
+GameManager ..> EventBus : Subscribe (BankruptcyEvent)
+GameManager ..> FactoryStatus : ResetStatus
+GameManager "1" *-- "1" GameStateMachine : _stateMachine
+FactoryStatus ..> EventBus : Publish(BankruptcyEvent, 파산바 1.0 도달 시 1회)
 
 @enduml

@@ -2,8 +2,9 @@ using UnityEngine;
 
 public class MachineModifyUIView_Level : TextUIView
 {
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         Prefix = "Level: ";
     }
 }

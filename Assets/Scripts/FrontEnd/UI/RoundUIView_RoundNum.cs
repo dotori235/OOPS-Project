@@ -2,8 +2,9 @@ using UnityEngine;
 
 public class RoundUIView_RoundNum : TextUIView
 {
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         Prefix = "Round ";
     }
 }

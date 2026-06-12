@@ -1,11 +1,7 @@
-using NUnit.Framework;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
 using System.Collections;
-public enum Operation { 
-    Addition, Multiplication, Assignment
-}
 
 namespace Backend
 {
@@ -13,6 +9,7 @@ namespace Backend
     {
         private static FactoryStatus _instance;
 
+        private bool _bankruptcyNotified;
 
         private float _splendorMultiplier;
 
@@ -142,6 +139,12 @@ namespace Backend
             SetValue(FactoryStatusType.BankruptcyBar, Operation.Addition, delta);
             if (BankruptcyBar < 0f) BankruptcyBar = 0f;
             if (BankruptcyBar > 1f) BankruptcyBar = 1f;
+
+            if (IsGameOver() && !_bankruptcyNotified)
+            {
+                _bankruptcyNotified = true;
+                EventBus.GetInstance().Publish(new BankruptcyEvent(BankruptcyBar));
+            }
         }
 
         public bool IsGameOver()
@@ -151,13 +154,12 @@ namespace Backend
 
         public void ResetStatus()
         {
+            _bankruptcyNotified = false;
 
             SetValue(FactoryStatusType.Money, Operation.Assignment, 1000);
             SetValue(FactoryStatusType.BrandPoints, Operation.Assignment, 0);
             SetValue(FactoryStatusType.BrandLevel, Operation.Assignment, 1);
             SetValue(FactoryStatusType.BankruptcyBar, Operation.Assignment, 0);
-
-
         }
     }
 }

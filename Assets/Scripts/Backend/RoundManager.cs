@@ -1,11 +1,9 @@
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Backend
 {
-    public class RoundManager : MonoBehaviour, IManager, IGameEventListener, IRoundSubject
+    public class RoundManager : MonoBehaviour, IGameEventListener, IRoundSubject
     {
         private int _roundNumber = 1;
         private float _apThreshold = 15f;
@@ -66,7 +64,7 @@ namespace Backend
             {
                 if (!soldEvent.IsDefective)
                 {
-                    _soldItemAPs.Add(soldEvent.AttackPower);
+                    _soldItemAPs.Add(soldEvent.Stats.Get(StatType.AttackPower));
                     if (_soldItemAPs.Count >= 5)
                     {
                         _soldItemAPs.RemoveAt(0);
@@ -123,7 +121,7 @@ namespace Backend
         public void UnregisterObserver(IObserver observer)
         {
             if (!_observers.Contains(observer)) return;
-            _observers.Add(observer);
+            _observers.Remove(observer);
         }
         public void NotifyObservers()
         {

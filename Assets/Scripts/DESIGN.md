@@ -59,14 +59,12 @@ EventBus를 경유하면 발행자와 구독자가 서로를 모른 채 통신�
 **트레이드오프**: 이벤트 흐름이 코드에서 직접 보이지 않아 디버깅이 다소 어려울 수 있다.
 이벤트 타입을 명확하게 네이밍하여 보완한다.
 
-### 2. IManager 인터페이스
+### 2. IManager 인터페이스 (폐기 — refactor/oop-solid Phase 2)
 
-**결정**: `abstract Manager` 클래스 대신 `IManager` 인터페이스 사용
-
-**이유**: C#은 단일 상속만 지원한다. MonoBehaviour를 상속하면서 공통 추상 클래스도 상속하는 것은 불가능하다.
-인터페이스는 다중 구현이 가능하므로 MonoBehaviour 상속과 충돌하지 않는다.
-
-**다형성 유지**: GameManager가 `List<IManager>`를 보유하고 `OnEvent()`를 타입 분기 없이 호출한다.
+**폐기 사유**: GameManager의 `_managers` 리스트는 채우기만 하고 호출처가 없는 dead code였다.
+매니저 간 통신은 EventBus 구독(`IGameEventListener`)으로 이미 일원화되어 있어
+`IManager`는 `IGameEventListener`와 시그니처까지 중복이었다. 인터페이스와
+RoundManager/SellManager의 구현 선언을 삭제했다.
 
 ### 3. BeltTrack + ItemSpawner 분리
 
@@ -90,15 +88,61 @@ EventBus를 경유하면 발행자와 구독자가 서로를 모른 채 통신�
 
 **이유**: 프레임별로 자금이 음수일 때 파산바 게이지를 실시간으로 가산(Update)하고, 프런트엔드 UI 컴포넌트들이 실시간으로 상태 변경을 구독하여 화면을 갱신하기 위함입니다. 또한 내부 상태 변수를 Dictionary<FactoryStatusType, float>로 추상화하여 상태의 유연한 관리와 전파를 용이하게 하였습니다.
 
-### 6. Machine Configure(BeltTrack) 동적 초기화
+### 6. Machine Configure(BeltTrack) 동적 초기화 (폐기 — refactor/oop-solid Phase 3)
 
-**결정**: Machine 추상 클래스에 `Configure(BeltTrack)` 메서드를 구현하여 런타임에 벨트 트랙을 수동으로 연결할 수 있도록 함
-
-**이유**: 씬 구성 단계에서 인스펙터 레퍼런스를 미리 잡아두는 방식은 정적 배치에 유리하지만, 게임 런타임 중에 GameManager가 기계를 동적으로 인스턴스화하고 벨트의 특정 슬롯에 동적으로 임포트/배치할 때 인스펙터 연결이 불가능합니다. `Configure()` 메서드를 통한 의존성 주입 구조를 도입함으로써 씬 배치 및 런타임 동적 생성을 모두 깔끔하게 지원할 수 있게 됩니다.
+**폐기 사유**: 기계 배치 주체가 GameManager에서 FrontEnd의 BeltBlock으로 이관되면서
+`Configure(BeltTrack)`의 유일한 호출처(GameManager.PlaceMachine)가 사라졌다. 실제
+씬/프리팹에서도 `_beltTrack`은 전부 null이어서 Update()의 GetNearestItem 폴링 가공
+경로는 죽은 코드였다. 가공은 OnTriggerStay 물리 충돌 단일 경로로 일원화하고
+Machine의 BeltTrack 의존을 제거했다 — Machine은 이제 벨트 구조를 전혀 모른다.
 
 ### 7. 벌금 정책 및 파산 게이지 관리 일원화
 
 **결정**: 불량품 판매 시 고정 벌금액 대신 **아이템 가치 비례 차감**으로 강화하고, 즉발성 파산바 페널티 대신 `FactoryStatus`의 `Update()` 루프를 통해 돈이 마이너스 상태일 때 마이너스 자금 비율에 비례해 매 프레임 파산 게이지가 자연 가산(natural penalty)되도록 일원화함.
+
+### 8. Stat 클래스 — 스탯의 단일 표현 (OCP)
+
+**결정**: 아이템 스탯을 개별 float 필드(AP/DU/SP) 대신 `Stat` 클래스(Pure C#,
+`[Serializable]`, 내부 `Dictionary<StatType, float>`)로 일원화. `Item`과 `ItemSpawner`가
+Stat을 has-a로 보유하고, 스폰 시 `item.Initialize(_baseStat.Clone())`으로 값을 전달.
+`ItemSoldEvent`도 개별 프로퍼티 대신 Stat 스냅샷을 탑재한다.
+
+**이유**: 스탯을 하나 추가할 때 Item(필드+switch 2곳)·ItemSpawner·SellManager·
+ItemSoldEvent·RoundManager까지 수정이 번졌다(OCP 위반). Stat 도입 후에는
+`StatType` enum 멤버 추가 + `Item.PriceCoefficients` 계수 등록만으로 끝난다.
+가격 공식도 StatType→계수 매핑 합산으로 일반화했다.
+
+**직렬화**: 인스펙터에는 `StatEntry{StatType, float}` 리스트로 노출하고
+`ISerializationCallbackReceiver`로 Dictionary와 동기화한다 (Dictionary는 Unity 직렬화 불가).
+
+### 9. 게임 흐름 FSM + 게임오버 이벤트화
+
+**결정**: GameManager의 게임 흐름을 `IGameState{Enter/Update/Exit}`(Pure C#) +
+`GameStateMachine`으로 관리. 상태는 Ready → Playing ⇄ Paused, Playing → GameOver.
+기존 StartGame/PauseGame/ResetGame의 `Time.timeScale` 조작은 상태 Enter로 흡수했다.
+게임오버는 매 프레임 `IsGameOver()` 폴링 대신, `FactoryStatus`가 파산바 1.0 도달 시
+`BankruptcyEvent`를 1회 발행하고 GameManager가 수신해 GameOver로 전이한다.
+
+**이유**: 게임 흐름 상태가 timeScale 값에 암묵적으로 흩어져 있어 상태 추가(예: 일시정지
+메뉴, 라운드 전환 연출)가 어려웠다. FSM으로 상태와 전이를 명시하면 새 상태 추가가
+클래스 추가로 끝난다(OCP). 폴링 제거로 GameManager의 Update는 상태 위임만 남는다.
+
+**함께 정리**: GameManager의 기계 배치/강화/제거 경로(PlaceMachine/LevelUpMachine/
+RemoveMachine/LevelUpBelt/_placedMachines/기계 프리팹 필드)는 FrontEnd의
+BeltBlock + MachineManager + 패널 UI가 대체 완료한 죽은 경로라 전부 삭제했다.
+
+### 10. BeltTrack 타일화
+
+**결정**: 연속 길이(`_trackLength: float`) 대신 타일 수 기반으로 전환.
+`TrackLength = _tileCount × _tileSize`, `MachineSpaces = _tileCount`(기계 타일 수),
+레벨업 = 타일 +1, 판매 타일(SellBlock)은 트랙 끝(`TrackLength + _tileSize`)에 위치.
+
+**이유**: 벨트의 공간 단위(기계 슬롯·블록 배치·판매 지점)가 모두 1타일 격자로
+움직이는데 길이만 연속값이라 `_machineSpaces`/`_trackLength`/SellBlock 위치를 따로
+증가시키며 동기화해야 했다. 타일 수 하나로 일원화하면 파생값(길이·슬롯 수·판매 위치)이
+모두 계산 프로퍼티가 된다. 함께 삭제: `GetNearestItem`(폴링 가공 폐기), 미사용
+`_itemPositions`, 주석 처리된 끝 도달 판매 로직(판매는 SellBlock 트리거 담당),
+디버그 `Input.GetKeyDown(P)`, `MachineSpaces` 프로퍼티와 중복인 `GetMachineSpaces()`.
 
 ---
 
@@ -180,8 +224,7 @@ Awake에서 설정한다.
 ```
 ItemSpawner ──(item 프리팹 Instantiate + AddItem)──► BeltTrack
                                                         │ Update()마다 아이템 이동
-                                                   Machine들 (Update() 최인접 추적
-                                                        │     + OnTriggerStay() 충돌 가공)
+                                                   Machine들 (OnTriggerStay() 충돌 가공)
                                                         ▼
                                                     Item 강화 (불량 발생 가능)
 
@@ -210,7 +253,7 @@ BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManage
 | `ItemSpawner` | 스폰 타이밍 및 아이템 프리팹 인스턴스 생성 | 스폰 로직 변경 시 |
 | `SellManager` | 가격 계산, 판매/벌금 처리, ItemSoldEvent 발행 | 판매 공식 변경 시 |
 | `RoundManager` | 라운드 타이머, 평균 AP 기준치, 보상/패널티 | 라운드 규칙 변경 시 |
-| `GameManager` | 씬 라이프사이클, 기계 배치/제거/강화, IManager 조율 | 게임 진입/종료 흐름 변경 시 |
+| `GameManager` | 게임 흐름 FSM 관리 (Ready/Playing/Paused/GameOver 전이) | 게임 진입/종료 흐름 변경 시 |
 | `FactoryStatus` | 전역 상태 읽기/쓰기 + 변경 통지 + 파산바 자연 가감 | 전역 상태 항목 추가/제거 시 |
 | `EventBus` | 이벤트 publish/subscribe | 이벤트 시스템 교체 시 |
 | `Item` 계열 | 스탯 보유/강화/가격 계산 + 자체 시각 표현 | 아이템 스탯·불량 규칙 변경 시 |
@@ -231,17 +274,10 @@ BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManage
    `RoundManager.Instance`, `SellManager.Instance`, `MachineManager.Instance`가 추가됨.
    사용처가 있어 단순 삭제 불가(RoundUI, BeltTrack, BeltBlock이 의존) — 인스펙터 참조로
    바꾸려면 씬 재연결 필요
-3. **`FindAnyObjectByType` 사용**: `GameManager.Awake()`가 RoundManager/SellManager를
-   씬에서 검색한다 (AGENTS.md: 인스펙터 레퍼런스 사용 원칙). 수정 시 씬 재연결 필요
-4. **1파일 1클래스 위반**: `FactoryStatus.cs`에 `Operation` enum,
-   `UIView.cs`에 `UIUpdateArgs` 계열 3클래스, `RoundUI.cs`에 `RoundParameters`,
-   `BlockSelect.cs`에 `BlockUIType` enum 동거.
-   파일명-클래스명 불일치도 1건: `MachineModifybutton_Sell.cs` ↔ `MachineModifyButton_Sell`
-5. **불필요/위험 using**: `SellManager`의 `UnityEditor.UIElements`(에디터 외 빌드 깨짐),
-   `BeltTrack`/`FactoryStatus`/`BeltBlockManager`의 `NUnit.Framework`,
-   `ItemSpawner`의 `Newtonsoft.Json`, `Machine`의 `Unity.IO.LowLevel.Unsafe`,
-   여러 파일의 `Unity.VisualScripting`, `MachineModifyUI`의
-   `using static UnityEngine.Rendering.DebugUI` 등 — 모두 미사용이므로 제거 필요
+> 1파일 1클래스 위반(Operation/UIUpdateArgs 계열/RoundParameters/BlockUIType 동거,
+> `MachineModifybutton_Sell.cs` 파일명 오타)과 불필요/위험 using
+> (`UnityEditor.UIElements`, NUnit, Newtonsoft 등)은 refactor/oop-solid Phase 0에서,
+> `GameManager.Awake()`의 `FindAnyObjectByType` 검색은 Phase 2(_managers 삭제)에서 해소됨.
 
 ---
 

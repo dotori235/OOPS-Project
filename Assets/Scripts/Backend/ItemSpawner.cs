@@ -1,4 +1,3 @@
-using Newtonsoft.Json.Serialization;
 using UnityEngine;
 
 namespace Backend
@@ -8,17 +7,13 @@ namespace Backend
         [SerializeField] private BeltTrack _beltTrack;
         [SerializeField] private GameObject _itemPrefab;
 
-        [SerializeField] private float _baseAP = 10f;
-        [SerializeField] private float _baseDU = 0;
-        [SerializeField] private float _baseSP = 0f;
+        [SerializeField] private Stat _baseStat = new Stat();
         [SerializeField] private float _spawnInterval = 3f;
-        
+
         private float _timer = 0f;
         private int _level = 1;
 
-        public float BaseAP { get => _baseAP; private set => _baseAP = value; }
-        public float BaseDU { get => _baseDU; private set => _baseDU = value; }
-        public float BaseSP { get => _baseSP; private set => _baseSP = value; }
+        public Stat BaseStat { get => _baseStat; private set => _baseStat = value; }
         public float SpawnInterval { get => _spawnInterval; private set => _spawnInterval = value; }
         private void Start()
         {
@@ -52,17 +47,18 @@ namespace Backend
             {
                 GameObject go = Instantiate(_itemPrefab, transform.position, Quaternion.identity, transform);
 
-                _beltTrack.AddItem(go.GetComponent < Item >());
-                go.GetComponent<Item>().Position = transform.position;
-                go.GetComponent<Item>().SetValue(_baseAP, _baseDU, _baseSP);
+                Item item = go.GetComponent<Item>();
+                _beltTrack.AddItem(item);
+                item.Position = transform.position;
+                item.Initialize(_baseStat.Clone());
             }
         }
 
         public void LevelUp()
         {
             _level++;
-            _baseAP += 2f;
-            _baseDU += 2f;
+            _baseStat.Add(StatType.AttackPower, 2f);
+            _baseStat.Add(StatType.Durability, 2f);
             _spawnInterval = Mathf.Max(0.5f, _spawnInterval * 0.9f);
         }
         public void OnNotify(ISubject subject)
