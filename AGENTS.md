@@ -58,7 +58,9 @@ Assets/Scenes/SampleScene.unity
 Assets/Scenes/SampleUIScene.unity
 
 Assets/Scripts/BACKEND.puml
-Assets/Scripts/FRONTEND.puml
+Assets/Scripts/FRONTEND_VIEW.puml
+Assets/Scripts/FRONTEND_BLOCK.puml
+Assets/Scripts/FRONTEND_PANEL.puml
 Assets/Scripts/DESIGN.md
 
 Assets/Scripts/Backend/BankruptcyEvent.cs
@@ -236,6 +238,6 @@ Assets/Scripts/FrontEnd/UI/UIView/UIView.cs
 - [ ] MonoBehaviour인 경우: `OnDestroy()`에서 이벤트 구독 해제
 - [ ] 네이밍만으로 의도가 드러남 (주석 없이 읽히는가)
 - [ ] 함수가 하나의 일만 하고 있음
-- [ ] 클래스 생성/수정 시 해당 레이어의 puml도 함께 업데이트됨 (Backend → BACKEND.puml, FrontEnd → FRONTEND.puml)
+- [ ] 클래스 생성/수정 시 해당 레이어의 puml도 함께 업데이트됨 (Backend → BACKEND.puml, FrontEnd → FRONTEND_VIEW/BLOCK/PANEL.puml 중 해당 영역). 다이어그램에 한글 금지 (CI 러너에 한글 폰트 없음)
 - [ ] `DESIGN.md`의 책임 범위를 벗어나지 않음
 - [ ] 컴파일 에러 없음 (Unity MCP 확인)

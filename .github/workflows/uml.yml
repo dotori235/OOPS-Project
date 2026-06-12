@@ -6,6 +6,17 @@ on:
       - '**.puml'
   workflow_dispatch:
 
+# a newer push supersedes any in-flight run for the same branch
+concurrency:
+  group: uml-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # pinned: "latest" can break rendering without any repo change
+  PLANTUML_VERSION: '1.2026.6'
+  # default 4096px clips large diagrams during PNG export
+  PLANTUML_LIMIT_SIZE: '16384'
+
 jobs:
   generate-uml:
     runs-on: ubuntu-latest
@@ -22,53 +33,63 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install librsvg2-bin, Graphviz and poppler-utils (for PDF and dot rendering)
+      - name: Install Graphviz, librsvg and poppler-utils
         run: |
           sudo apt-get update
           sudo apt-get install -y librsvg2-bin graphviz poppler-utils
 
       - name: Download PlantUML
         run: |
-          curl -L https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar \
+          curl -fsSL "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
             -o plantuml.jar
 
-      - name: Create output directory
-        run: mkdir -p docs/uml
-
-      - name: Generate PNG from .puml files
+      - name: Generate SVG and PNG from .puml files
         run: |
-          find . -name "*.puml" \
-            ! -path "./.git/*" \
-            ! -path "./plantuml.jar" \
-            | while read puml; do
-              filename=$(basename "$puml" .puml)
-              echo "Generating docs/uml/${filename}.png from ${puml}"
-              java -jar plantuml.jar \
-                -tpng \
-                -charset UTF-8 \
-                -o "$(pwd)/docs/uml" \
-                "$puml"
-            done
+          set -euo pipefail
+          mkdir -p docs/uml
+          while IFS= read -r puml; do
+            echo "Rendering ${puml}"
+            java -jar plantuml.jar -tsvg -charset UTF-8 -o "$(pwd)/docs/uml" "$puml"
+            java -jar plantuml.jar -tpng -charset UTF-8 -o "$(pwd)/docs/uml" "$puml"
+          done < <(find . -name "*.puml" ! -path "./.git/*" | sort)
 
-      - name: Generate combined UML PDF (one page per diagram)
+      - name: Fail if PlantUML emitted error diagrams
+        # PlantUML can render its own crash/error dump as a valid image
+        # (exit code 0); never let those get committed
         run: |
-          svg_dir=$(mktemp -d)
-          find . -name "*.puml" \
-            ! -path "./.git/*" \
-            | sort | while read puml; do
-              echo "Rendering ${puml} to SVG"
-              java -jar plantuml.jar \
-                -tsvg \
-                -charset UTF-8 \
-                -o "$svg_dir" \
-                "$puml"
-            done
-          for svg in "$svg_dir"/*.svg; do
-            rsvg-convert -f pdf -o "${svg%.svg}.pdf" "$svg"
-          done
-          pdfunite "$svg_dir"/*.pdf UML.pdf
+          set -euo pipefail
+          if grep -rlE "An error has occurred|has crashed" docs/uml --include="*.svg"; then
+            echo "::error::PlantUML produced error diagrams instead of UML (see files above)"
+            exit 1
+          fi
+
+      - name: Build combined vector PDF (one page per diagram)
+        # assemble the PDF from SVG so text stays vector (selectable,
+        # crisp at any zoom) instead of embedding raster PNGs
+        run: |
+          set -euo pipefail
+          pdf_dir=$(mktemp -d)
+          while IFS= read -r svg; do
+            name=$(basename "${svg%.svg}")
+            rsvg-convert -f pdf -o "${pdf_dir}/${name}.pdf" "$svg"
+          done < <(find docs/uml -name "*.svg" | sort)
+          pdfunite "${pdf_dir}"/*.pdf UML.pdf
+
+      # On non-main branches, publish the diagrams as a downloadable
+      # artifact instead of pushing bot commits onto the branch
+      # (bot commits on PR branches caused conflicts and force-push
+      # accidents with the generated binaries)
+      - name: Upload diagrams as workflow artifact (non-main)
+        if: github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: uml-diagrams
+          path: |
+            docs/uml/
+            UML.pdf
 
       - name: Check for changes
+        if: github.ref == 'refs/heads/main'
         id: check_changes
         run: |
           if [ -n "$(git status --porcelain docs/uml/ UML.pdf)" ]; then
@@ -77,11 +98,11 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit and push generated files
-        if: steps.check_changes.outputs.changed == 'true'
+      - name: Commit and push generated files (main only)
+        if: github.ref == 'refs/heads/main' && steps.check_changes.outputs.changed == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/uml/ UML.pdf
-          git commit -m "docs: auto-generate UML PNG and PDF diagrams [skip ci]"
+          git commit -m "docs: auto-generate UML diagrams (SVG/PNG/PDF) [skip ci]"
           git push

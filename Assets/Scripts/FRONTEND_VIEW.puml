@@ -1,0 +1,228 @@
+@startuml FRONTEND_VIEW
+
+skinparam classAttributeIconSize 0
+skinparam classFontName Courier
+skinparam classFontSize 12
+skinparam classHeaderBackgroundColor #D8E8F0
+skinparam classBorderColor #333333
+skinparam classBackgroundColor #FFFFFF
+skinparam interfaceBackgroundColor #E8F4E8
+skinparam interfaceBorderColor #336633
+skinparam arrowColor #333333
+skinparam arrowThickness 1.5
+
+title FrontEnd 1/3 — Observer Bridge & UI Views (Unity)
+
+note as N1
+  <b>Scope</b>: FrontEnd/ObserverPattern + FrontEnd/UI widgets (global namespace)
+  <b>Bridge</b>: the ISubject/IObserver family below is also implemented by
+  backend classes (FactoryStatus, RoundManager, BeltTrack) — see BACKEND.puml.
+  Scene blocks: FRONTEND_BLOCK.puml, panels & buttons: FRONTEND_PANEL.puml
+end note
+
+' ══════════════════════════════════════════════
+' OBSERVER PATTERN (bridge interfaces)
+' ══════════════════════════════════════════════
+
+package "ObserverPattern" {
+  interface ISubject {
+    +RegisterObserver(o: IObserver): void
+    +UnregisterObserver(o: IObserver): void
+    +NotifyObservers(): void
+  }
+  interface IObserver {
+    +OnNotify(subject: ISubject): void
+  }
+  interface IFactoryStatusSubject {
+    +NotifyFactoryStatus(type: FactoryStatusType, arg: UIUpdateArgs): void
+  }
+  interface IFactoryStatusObserver {
+    +OnFactoryStatusChanged(type: FactoryStatusType, arg: UIUpdateArgs): void
+  }
+  interface IRoundSubject {
+    +NotifyRound(): void
+  }
+  interface IRoundObserver {
+    +OnRoundChanged(s: IRoundSubject, arg: UIUpdateArgs): void
+  }
+  interface IBeltTrackLevelSubject {
+    +NotifyBeltTrackLevel(): void
+  }
+  interface IBeltTrackLevelObserver {
+    +OnBeltTrackLevelChanged(s: IBeltTrackLevelSubject): void
+  }
+  interface IBlockSubject {
+    +NotifyBlock(): void
+  }
+  interface IBlockObserver {
+    +OnBlockChanged(block: IBlockSubject): void
+  }
+  interface ISellBlockSubject {
+    +NotifySellBlock(item: ISellable): void
+  }
+  interface ISellBlockObserver {
+    +OnSellBlockReached(item: ISellable): void
+  }
+  interface IUIPanelButtonSubject {
+  }
+  interface IUIPanelButtonObserver {
+    +OnButtonSelected(button: IUIPanelButtonSubject): void
+  }
+
+  ISubject  <|-- IFactoryStatusSubject
+  ISubject  <|-- IRoundSubject
+  ISubject  <|-- IBeltTrackLevelSubject
+  ISubject  <|-- IBlockSubject
+  ISubject  <|-- ISellBlockSubject
+  ISubject  <|-- IUIPanelButtonSubject
+  IObserver <|-- IFactoryStatusObserver
+  IObserver <|-- IRoundObserver
+  IObserver <|-- IBeltTrackLevelObserver
+  IObserver <|-- IBlockObserver
+  IObserver <|-- ISellBlockObserver
+  IObserver <|-- IUIPanelButtonObserver
+
+  ' stack the 12 derived interfaces into columns of three
+  ' instead of one very wide rank
+  IFactoryStatusSubject -[hidden]- IBeltTrackLevelSubject
+  IBeltTrackLevelSubject -[hidden]- ISellBlockSubject
+  IRoundSubject -[hidden]- IBlockSubject
+  IBlockSubject -[hidden]- IUIPanelButtonSubject
+  IFactoryStatusObserver -[hidden]- IBeltTrackLevelObserver
+  IBeltTrackLevelObserver -[hidden]- ISellBlockObserver
+  IRoundObserver -[hidden]- IBlockObserver
+  IBlockObserver -[hidden]- IUIPanelButtonObserver
+}
+
+' ══════════════════════════════════════════════
+' UI UPDATE ARGS (Pure C# value wrappers)
+' ══════════════════════════════════════════════
+
+class UIUpdateArgs {
+  +Value: object <<get>>
+}
+class SliderUpdateArgs {
+  +MaxValue: float <<get, set>>
+}
+class TextUpdateArgs {
+}
+class RoundParameters {
+  +roundNum: int <<get>>
+  +timeLimit: float <<get>>
+  +targetAp: float <<get>>
+  +currentAp: float <<get>>
+}
+
+UIUpdateArgs <|-- SliderUpdateArgs
+UIUpdateArgs <|-- TextUpdateArgs
+UIUpdateArgs ..> RoundParameters : wraps (RoundUI)
+
+' ══════════════════════════════════════════════
+' UIVIEW family (per-widget updates)
+' ══════════════════════════════════════════════
+
+abstract class UIView << MonoBehaviour >> {
+  +{abstract} SetValue(arg: UIUpdateArgs): void
+}
+
+class TextUIView << MonoBehaviour >> {
+  +Prefix: string <<get, protected set>>
+  +Suffix: string <<get, protected set>>
+  +SetValue(arg: UIUpdateArgs): void
+}
+
+class SliderUIView << MonoBehaviour >> {
+  +SetValue(arg: UIUpdateArgs): void
+}
+
+class ButtonUiView << MonoBehaviour >> {
+  +SetValue(arg: UIUpdateArgs): void
+}
+
+UIView <|-- TextUIView
+UIView <|-- SliderUIView
+UIView <|-- ButtonUiView
+UIView ..> UIUpdateArgs : <<use>> param
+
+class MoneyUIView
+class BrandLevelUIView
+class RoundUIView_RoundNum
+class RoundUIView_TimeLimit
+class RoundUIView_TargetAP
+class RoundUIView_CurrentAP
+class MachineModifyUIView_MachineType
+class MachineModifyUIView_Level
+class MachineModifyUIView_LevelUpPrice
+class TrackModifyUIView_Level
+class TrackModifyUIView_LevelUpPrice
+class BrandPointUIView
+class BankruptcyUIView
+
+TextUIView <|-- MoneyUIView
+TextUIView <|-- BrandLevelUIView
+TextUIView <|-- RoundUIView_RoundNum
+TextUIView <|-- RoundUIView_TimeLimit
+TextUIView <|-- RoundUIView_TargetAP
+TextUIView <|-- RoundUIView_CurrentAP
+TextUIView <|-- MachineModifyUIView_MachineType
+TextUIView <|-- MachineModifyUIView_Level
+TextUIView <|-- MachineModifyUIView_LevelUpPrice
+TextUIView <|-- TrackModifyUIView_Level
+TextUIView <|-- TrackModifyUIView_LevelUpPrice
+SliderUIView <|-- BrandPointUIView
+SliderUIView <|-- BankruptcyUIView
+
+' stack the leaf views into a 4-column grid instead of
+' one very wide rank
+MoneyUIView -[hidden]- RoundUIView_TargetAP
+RoundUIView_TargetAP -[hidden]- MachineModifyUIView_MachineType
+BrandLevelUIView -[hidden]- RoundUIView_CurrentAP
+RoundUIView_CurrentAP -[hidden]- MachineModifyUIView_Level
+RoundUIView_RoundNum -[hidden]- MachineModifyUIView_LevelUpPrice
+MachineModifyUIView_LevelUpPrice -[hidden]- TrackModifyUIView_Level
+RoundUIView_TimeLimit -[hidden]- TrackModifyUIView_LevelUpPrice
+BrandPointUIView -[hidden]- BankruptcyUIView
+
+enum UIType {
+  Text
+  Slider
+  Button
+}
+
+' ══════════════════════════════════════════════
+' Status-subscribing UIs (observers of backend subjects)
+' ══════════════════════════════════════════════
+
+class FactoryStatusUI << MonoBehaviour >> {
+  -factoryStatusTypes: List~FactoryStatusType~ <<SerializeField>>
+  -uiViews: List~UIView~ <<SerializeField>>
+  -uiDict: Dict~FactoryStatusType, UIView~
+  --
+  +OnFactoryStatusChanged(type: FactoryStatusType, arg: UIUpdateArgs): void
+}
+
+class RoundUI << MonoBehaviour >> {
+  -roundNumTxt: UIView <<SerializeField>>
+  -timeLimitTxt: UIView <<SerializeField>>
+  -targetApTxt: UIView <<SerializeField>>
+  -currentApTxt: UIView <<SerializeField>>
+  --
+  +OnRoundChanged(s: IRoundSubject, arg: UIUpdateArgs): void
+}
+
+FactoryStatusUI ..|> IFactoryStatusObserver
+RoundUI ..|> IRoundObserver
+FactoryStatusUI "1" o-- "0..*" UIView : uiViews
+RoundUI "1" o-- "4" UIView
+FactoryStatusUI ..> "FactoryStatus\n(Backend)" : GetInstance().RegisterObserver
+RoundUI ..> "RoundManager\n(Backend)" : Instance.RegisterObserver
+
+' anchor otherwise-disconnected nodes below the graph
+' instead of letting them widen the layout sideways
+RoundParameters -[hidden]- UIType
+
+' place the widget tree below the observer cluster instead of
+' beside it, trading width for height
+ISellBlockObserver -[hidden]-- UIUpdateArgs
+
+@enduml
