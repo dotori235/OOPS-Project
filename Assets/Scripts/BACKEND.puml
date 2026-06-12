@@ -81,6 +81,7 @@ enum Operation {
   Multiplication
   Assignment
 }
+note bottom of Operation : currently unused — FactoryStatus.SetValue\nwas removed in favor of direct property + Notify
 
 ' ══════════════════════════════════════════════
 ' EVENTS  (Pure C#)
@@ -417,42 +418,58 @@ class GameStateMachine {
   +Update(): void
 }
 
-class ReadyState {
-}
 class PlayingState {
+  -_timeScale: float
+  --
+  +TimeScale: float <<get, set>>
 }
 class PausedState {
 }
 class GameOverState {
 }
 
-IGameState <|.. ReadyState
 IGameState <|.. PlayingState
 IGameState <|.. PausedState
 IGameState <|.. GameOverState
 GameStateMachine o-- IGameState : _current
 
 note bottom of GameStateMachine
-  Transitions: Ready -> Playing <-> Paused,
+  Game starts in Playing (no Ready state).
+  Transitions: Playing <-> Paused,
   Playing -> GameOver (on BankruptcyEvent).
-  Playing.Enter: timeScale=1,
+  Playing.Update applies an adjustable Time.timeScale
+  (set via GameManager.SetTimeScale);
   Paused/GameOver.Enter: timeScale=0
 end note
 
 class GameManager << MonoBehaviour >> {
   -_stateMachine: GameStateMachine
+  -_observers: List~IObserver~
   --
   +OnEvent(e: GameEvent): void
   +StartGame(): void
   +PauseGame(): void
   +ResumeGame(): void
+  +PauseResume(): void
   +ResetGame(): void
+  +SetTimeScale(timeScale: float): void
+  +RegisterObserver(o: IObserver): void
+  +UnregisterObserver(o: IObserver): void
+  +NotifyObservers(): void
+  +NotifyGameState(): void
 }
 
 GameManager ..|> IGameEventListener
 GameManager ..> EventBus : Subscribe (BankruptcyEvent)
-GameManager ..> FactoryStatus : ResetStatus
 GameManager "1" *-- "1" GameStateMachine : _stateMachine
+GameManager ..> "GameStateUI\n(FrontEnd)" : NotifyGameState -> OnGameStateChanged
 FactoryStatus ..> EventBus : Publish(BankruptcyEvent) once at bar 1.0
+
+note bottom of GameManager
+  Implements IGameStateSubject (defined in FrontEnd/ObserverPattern,
+  FRONTEND_VIEW.puml) and notifies GameStateUI on every transition.
+  ResetGame() reloads the "FrontEnd" scene instead of calling
+  FactoryStatus.ResetStatus.
+end note
 
 @enduml
