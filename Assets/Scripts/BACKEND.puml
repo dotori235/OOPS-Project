@@ -10,17 +10,16 @@ skinparam interfaceBackgroundColor #E8F4E8
 skinparam interfaceBorderColor #336633
 skinparam arrowColor #333333
 skinparam arrowThickness 1.5
-skinparam linetype ortho
 
 title Backend — Factory Game UML (Unity)
 
 note as N1
-  <b>Pure C#</b>: EventBus, GameEvent 계열, 인터페이스
-  <b>MonoBehaviour</b>: Item 계열, Machine 계열, BeltTrack,
+  <b>Pure C#</b>: EventBus, GameEvent family, interfaces
+  <b>MonoBehaviour</b>: Item family, Machine family, BeltTrack,
   ItemSpawner, SellManager, RoundManager, GameManager, FactoryStatus
-  <b>브리지</b>: IFactoryStatusSubject, IRoundSubject,
-  IBeltTrackLevelSubject, ISellBlockObserver 등은
-  FrontEnd/ObserverPattern/ 에 정의됨 — FRONTEND.puml 참고
+  <b>Bridge</b>: IFactoryStatusSubject, IRoundSubject,
+  IBeltTrackLevelSubject, ISellBlockObserver etc. are defined in
+  FrontEnd/ObserverPattern/ — see FRONTEND.puml
 end note
 
 ' ══════════════════════════════════════════════
@@ -154,18 +153,18 @@ class StatEntry << struct >> {
   +Value: float <<get>>
 }
 
-Stat "1" *-- "0..*" StatEntry : _entries (직렬화용)
+Stat "1" *-- "0..*" StatEntry : _entries (serialization)
 Stat ..> StatType
 
 note bottom of Stat
-  스탯 추가 = StatType enum 멤버 추가
-  + Item.PriceCoefficients 계수 등록만으로 끝 (OCP).
-  인스펙터에는 StatEntry 리스트로 노출,
-  런타임은 Dictionary로 동작 (ISerializationCallbackReceiver)
+  Adding a stat = add a StatType enum member
+  + register a coefficient in Item.PriceCoefficients (OCP).
+  Exposed to the inspector as a StatEntry list,
+  runs on a Dictionary at runtime (ISerializationCallbackReceiver)
 end note
 
 ' ══════════════════════════════════════════════
-' ITEM  (MonoBehaviour — 프리팹에 부착)
+' ITEM  (MonoBehaviour — attached to prefab)
 ' ══════════════════════════════════════════════
 
 abstract class Item << MonoBehaviour >> {
@@ -222,28 +221,28 @@ abstract class Machine << MonoBehaviour >> {
 }
 
 note bottom of Machine
-  가공 경로는 OnTriggerStay() 물리 충돌 단일.
-  Update()는 쿨다운 감소만 담당.
-  가공 시 alphaEff 코루틴으로 투명도 연출
+  Machining happens only via OnTriggerStay()
+  physics contact. Update() only ticks the cooldown.
+  alphaEff coroutine flashes alpha while machining
 end note
 
 class Grinder << MonoBehaviour >> {
   +GetTargetStat(): StatType
   +CanCauseDefect(): bool
 }
-note right of Grinder : AttackPower 강화, 불량 유발 가능
+note right of Grinder : boosts AttackPower, may cause defects
 
 class Welder << MonoBehaviour >> {
   +GetTargetStat(): StatType
   +CanCauseDefect(): bool
 }
-note right of Welder : Durability 강화, 불량 없음
+note right of Welder : boosts Durability, no defects
 
 class Painter << MonoBehaviour >> {
   +GetTargetStat(): StatType
   +CanCauseDefect(): bool
 }
-note right of Painter : Splendor 강화, 불량 유발 가능
+note right of Painter : boosts Splendor, may cause defects
 
 Machine <|-- Grinder
 Machine <|-- Welder
@@ -280,13 +279,13 @@ class BeltTrack << MonoBehaviour >> {
 }
 
 note bottom of BeltTrack
-  IBeltTrackLevelSubject + ISellBlockObserver 구현 (FRONTEND.puml).
-  타일 수 기반: TrackLength = _tileCount × _tileSize,
-  MachineSpaces = _tileCount, 레벨업 = 타일 +1
-  (판매 타일은 트랙 끝에 1개 추가 배치).
-  _sellBlock(FrontEnd BlockBase)을 직접 참조하고
-  Start()에서 SellManager.Instance를 사용 — DESIGN.md
-  "알려진 어긋남" 참고
+  Implements IBeltTrackLevelSubject + ISellBlockObserver (FRONTEND.puml).
+  Tile-based: TrackLength = _tileCount x _tileSize,
+  MachineSpaces = _tileCount, level up = +1 tile
+  (one extra sell tile sits at the end of the track).
+  Directly references _sellBlock (FrontEnd BlockBase) and
+  uses SellManager.Instance in Start() — see DESIGN.md
+  "known misalignments"
 end note
 
 BeltTrack "1" *-- "0..*" Item : _items
@@ -343,9 +342,9 @@ class FactoryStatus << (S,#FFD700) MonoBehaviour singleton >> {
 }
 
 note bottom of FactoryStatus
-  IFactoryStatusSubject 구현 (FRONTEND.puml).
-  Update()에서 파산바 자연 가감:
-  돈이 음수면 -Money/2000*dt 가산, 양수면 dt/60 감소
+  Implements IFactoryStatusSubject (FRONTEND.puml).
+  Update() drifts the bankruptcy bar:
+  +(-Money/2000)*dt while money < 0, else -dt/60
 end note
 
 ' ══════════════════════════════════════════════
@@ -407,7 +406,7 @@ SellManager ..> FactoryStatus : ModifyMoney / AddBrandPoints
 SellManager ..> ISellable : <<use>> param
 
 ' ══════════════════════════════════════════════
-' GAME MANAGER  (MonoBehaviour) + 게임 흐름 FSM (Pure C#)
+' GAME MANAGER  (MonoBehaviour) + game flow FSM (Pure C#)
 ' ══════════════════════════════════════════════
 
 class GameStateMachine {
@@ -434,8 +433,8 @@ IGameState <|.. GameOverState
 GameStateMachine o-- IGameState : _current
 
 note bottom of GameStateMachine
-  상태 전이: Ready → Playing ⇄ Paused,
-  Playing → GameOver (BankruptcyEvent 수신 시).
+  Transitions: Ready -> Playing <-> Paused,
+  Playing -> GameOver (on BankruptcyEvent).
   Playing.Enter: timeScale=1,
   Paused/GameOver.Enter: timeScale=0
 end note
@@ -454,6 +453,6 @@ GameManager ..|> IGameEventListener
 GameManager ..> EventBus : Subscribe (BankruptcyEvent)
 GameManager ..> FactoryStatus : ResetStatus
 GameManager "1" *-- "1" GameStateMachine : _stateMachine
-FactoryStatus ..> EventBus : Publish(BankruptcyEvent, 파산바 1.0 도달 시 1회)
+FactoryStatus ..> EventBus : Publish(BankruptcyEvent) once at bar 1.0
 
 @enduml
