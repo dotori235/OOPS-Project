@@ -37,6 +37,8 @@ public class MachineModifyUI : UIPanelBase
         _levelUpPayTxt.SetValue(pay);
         _hpGauge?.SetValue(new SliderUpdateArgs(bb.MachineHpRatio, 1f));
         _repairPayTxt?.SetValue(new TextUpdateArgs(bb.MachineRepairPrice.ToString()));
+        levelupBtn?.SetInteractable(bb.MachineCanLevelUp);
+        repairBtn?.SetInteractable(bb.MachineCanRepair);
     }
 
     public override void OnButtonSelected(IUIPanelButtonSubject button)

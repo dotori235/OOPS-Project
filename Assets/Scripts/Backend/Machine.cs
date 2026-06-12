@@ -20,14 +20,19 @@ namespace Backend
         public float UpgradeAmount { get => _upgradeAmount; private set => _upgradeAmount = value; }
         public float Hp { get => _hp; private set => _hp = value; }
         public float MaxHp { get => _maxHp; private set => _maxHp = value; }
-        public float HpRatio { get => _hp / _maxHp; }
+        public float HpRatio { get => _maxHp <= 0f ? 0f : _hp / _maxHp; }
 
         public static float InstallPrice { get => 200f; }
         public static float LevelUpPriceCoeff { get => 100; }
         public static float RepairPrice { get => 150f; }
-        private void Start()
+        // HP must be ready before any caller reads it (UI can query the same
+        // frame the machine is instantiated, before Start), so initialize in Awake.
+        protected virtual void Awake()
         {
             _hp = _maxHp;
+        }
+        private void Start()
+        {
             _renderer = GetComponent<Renderer>();
             SetAlpha(0.2f);
         }
@@ -69,6 +74,11 @@ namespace Backend
             return _hp >= _minUpgradableHp;
         }
 
+        public bool CanRepair()
+        {
+            return _hp < _maxHp;
+        }
+
         public virtual void LevelUp()
         {
             // HP gates upgrades: a worn machine must be repaired before leveling again.
@@ -82,6 +92,7 @@ namespace Backend
 
         public void Repair()
         {
+            if (!CanRepair()) return;
             _hp = _maxHp;
         }
 

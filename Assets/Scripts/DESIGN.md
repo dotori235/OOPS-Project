@@ -169,7 +169,9 @@ BeltBlock + MachineManager + 패널 UI가 대체 완료한 죽은 경로라 전�
 시작하고, `LevelUp()` 1회마다 **비율**로 감소한다(`_hp *= 1 - _hpLossRate`, 기본 0.2 = 20%).
 HP가 `_minUpgradableHp`(기본 30) 미만이면 `CanLevelUp()`이 false가 되어 더 이상 업그레이드할 수
 없다 — 단, **가공(`OnTriggerStay`)은 HP와 무관하게 계속된다**. `Repair()`는 HP를 `_maxHp`로
-100% 복구한다. 수리 비용은 고정값 `RepairPrice`(static, 기본 150)로 노출한다.
+100% 복구한다(이미 만피면 `CanRepair()`가 false라 no-op). 수리 비용은 고정값 `RepairPrice`
+(static, 기본 150)로 노출한다. `_hp`는 인스턴스화 직후 같은 프레임에 UI가 상태를 조회해도 0으로
+보이지 않도록 `Start`가 아닌 `Awake`에서 `_maxHp`로 초기화한다(서브클래스는 `base.Awake()` 호출).
 
 **이유**: 무한 업그레이드를 막고 "업그레이드 ↔ 수리"의 자원 순환을 만들기 위함. 비율 감소를
 택한 이유는 고정 감소와 달리 HP가 0에 점근해 완전히 망가지지 않으면서도, 횟수가 쌓일수록
@@ -184,9 +186,11 @@ HP가 `_minUpgradableHp`(기본 30) 미만이면 `CanLevelUp()`이 false가 되�
 잘못 강화되지 않도록 한다.
 
 **FrontEnd 연결(구현 완료)**:
-- `BeltBlock`: `MachineLevelUp()`이 결제 **전** `_machine.CanLevelUp()`을 확인(닳은 기계에 헛돈 차감
-  방지), `MachineRepair()`(고정 `RepairPrice` 결제 → `Machine.Repair()`), `MachineHpRatio`/
-  `MachineRepairPrice`/`MachineCanLevelUp` 노출.
+- `BeltBlock`: `MachineLevelUp()`은 결제 **전** `CanLevelUp()`, `MachineRepair()`는 결제 **전**
+  `CanRepair()`를 확인(닳지 않은/만피 기계에 헛돈 차감 방지). `MachineHpRatio`/`MachineRepairPrice`/
+  `MachineCanLevelUp`/`MachineCanRepair` 노출.
+- `MachineModifyUI`는 `OnBlockChanged`에서 `MachineCanLevelUp`/`MachineCanRepair`로 Level Up·Repair
+  버튼의 `interactable`을 토글해, 불가 상태를 회색 버튼으로 피드백한다(`UIPanelButtonBase.SetInteractable`).
 - `MachineModifyButton_Repair`(── `MachineModifyButton` 파생), `MachineHpUIView`(── `SliderUIView`
   파생, `HpRatio`를 0~1 게이지로 표시), `MachineModifyUIView_RepairPrice`(── `TextUIView` 파생,
   접두사 "Repair Price: ") 신설.

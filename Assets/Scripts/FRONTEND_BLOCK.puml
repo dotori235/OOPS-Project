@@ -57,6 +57,7 @@ class BeltBlock << MonoBehaviour >> {
   +MachineRepairPrice: float <<get>>
   +MachineHpRatio: float <<get>>
   +MachineCanLevelUp: bool <<get>>
+  +MachineCanRepair: bool <<get>>
   --
   +UIType(): BlockUIType
   +CreateMachine(type: MachineType): bool
@@ -67,9 +68,10 @@ class BeltBlock << MonoBehaviour >> {
 }
 
 note bottom of BeltBlock
-  MachineLevelUp() pre-checks Machine.CanLevelUp() before paying
-  (a worn machine must be repaired first). MachineRepair() pays the
-  fixed RepairPrice and calls Machine.Repair().
+  MachineLevelUp() pre-checks CanLevelUp() and MachineRepair()
+  pre-checks CanRepair() before paying (no charge for a no-op).
+  MachineModifyUI toggles the Level Up / Repair button interactable
+  from MachineCanLevelUp / MachineCanRepair.
 end note
 
 class TrackBlock << MonoBehaviour >> {

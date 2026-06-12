@@ -2,8 +2,9 @@ namespace Backend
 {
     public class Welder : Machine
     {
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             SetMachineType(MachineType.Welder);
         }
 

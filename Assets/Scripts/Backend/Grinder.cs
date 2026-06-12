@@ -2,8 +2,9 @@ namespace Backend
 {
     public class Grinder : Machine
     {
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             SetMachineType(MachineType.Grinder);
         }
         public override StatType GetTargetStat()

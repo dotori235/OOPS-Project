@@ -221,6 +221,7 @@ abstract class Machine << MonoBehaviour >> {
   +RepairPrice: float <<get>> {static}
   --
   +CanLevelUp(): bool
+  +CanRepair(): bool
   +LevelUp(): void
   +Repair(): void
   +GetMachineType(): MachineType
@@ -235,10 +236,11 @@ note bottom of Machine
   Machining happens only via OnTriggerStay()
   physics contact. Update() only ticks the cooldown.
   alphaEff coroutine flashes alpha while machining.
-  HP: starts at _maxHp, LevelUp() multiplies it by
-  (1 - _hpLossRate) and is gated by CanLevelUp()
-  (_hp >= _minUpgradableHp); machining is unaffected.
-  Repair() restores _hp to _maxHp (fixed RepairPrice).
+  HP: initialized to _maxHp in Awake (subclasses call
+  base.Awake). LevelUp() multiplies _hp by (1 - _hpLossRate)
+  and is gated by CanLevelUp() (_hp >= _minUpgradableHp);
+  machining is unaffected. Repair() restores _hp to _maxHp,
+  gated by CanRepair() (_hp < _maxHp). Fixed RepairPrice.
 end note
 
 class Grinder << MonoBehaviour >> {

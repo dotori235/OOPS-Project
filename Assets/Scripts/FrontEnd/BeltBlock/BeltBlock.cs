@@ -15,6 +15,7 @@ public class BeltBlock : BlockBase
     public float MachineRepairPrice { get => Machine.RepairPrice; }
     public float MachineHpRatio { get => _machine == null ? 0 : _machine.HpRatio; }
     public bool MachineCanLevelUp { get => _machine != null && _machine.CanLevelUp(); }
+    public bool MachineCanRepair { get => _machine != null && _machine.CanRepair(); }
 
     public override BlockUIType UIType()
     {
@@ -69,6 +70,9 @@ public class BeltBlock : BlockBase
     }
     public bool MachineRepair()
     {
+        // Don't charge to "repair" a machine that is already at full HP.
+        if (!_machine.CanRepair()) return false;
+
         float pay = MachineRepairPrice;
         if (PayMoney(pay))
         {
