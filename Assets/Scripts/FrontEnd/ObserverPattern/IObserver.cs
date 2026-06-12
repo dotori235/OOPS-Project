@@ -34,3 +34,7 @@ public interface ISellBlockObserver : IObserver
 {
     public void OnSellBlockReached(ISellable item);
 }
+public interface IGameStateObserver : IObserver
+{
+    public void OnGameStateChanged(IGameState state);
+}

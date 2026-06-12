@@ -12,7 +12,7 @@ namespace Backend
             { StatType.Durability,  1.0f },
             { StatType.Splendor,    1.0f },
         };
-
+        
         private Stat _stats = new Stat();
         private bool _isDefective;
         private Vector3 _position;
@@ -24,6 +24,7 @@ namespace Backend
         {
             _stats = stats ?? new Stat();
             _isDefective = false;
+            
         }
 
         public void MoveItem(Vector3 dp)
@@ -56,14 +57,15 @@ namespace Backend
         public virtual float CalculateDefectChance()
         {
             // Simple defect chance formula based on durability
-            float chance = 0.07f * (5 / (_stats.Get(StatType.Durability) + 5));
+            float chance = 0.05f * (5 / (_stats.Get(StatType.Durability) + 5));
             return Mathf.Clamp(chance, 0.01f, 0.9f);
         }
 
         public void MakeDefective()
         {
             _isDefective = true;
-            transform.GetComponent<Renderer>().material.color = Color.red;
+            transform.GetChild(0).gameObject.SetActive(false);
+            transform.GetChild(1).gameObject.SetActive(true);
         }
 
         public void SellItem()

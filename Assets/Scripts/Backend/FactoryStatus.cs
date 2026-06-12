@@ -25,25 +25,7 @@ namespace Backend
         {
             return 50 + (BrandLevel - 1) * 100;
         }
-        private void SetValue(FactoryStatusType type, Operation op, float value)
-        {
-            switch (op)
-            {
-                case Operation.Assignment:
-                    _factoryStatusValue[type] = value;
-                    break;
-                case Operation.Addition:
-                    _factoryStatusValue[type] += value;
-                    break;
-                case Operation.Multiplication:
-                    _factoryStatusValue[type] *= value;
-                    break;
-            }
 
-            UIUpdateArgs arg = new UIUpdateArgs(_factoryStatusValue[type]);
-            NotifyFactoryStatus(type, arg);
-
-        }
         public void RegisterObserver(IObserver observer)
         {
             if(_observers.Contains(observer)) return;
@@ -112,7 +94,9 @@ namespace Backend
 
         public void ModifyMoney(float v)
         {
-            SetValue(FactoryStatusType.Money, Operation.Addition, v);
+            Money += v;
+            NotifyFactoryStatus(FactoryStatusType.Money, new UIUpdateArgs(Mathf.Round(Money)));
+        
         }
 
         public void AddBrandPoints(float sp)
@@ -136,7 +120,10 @@ namespace Backend
 
         public void UpdateBankruptcyBar(float delta)
         {
-            SetValue(FactoryStatusType.BankruptcyBar, Operation.Addition, delta);
+            
+            BankruptcyBar += delta;
+            NotifyFactoryStatus(FactoryStatusType.BankruptcyBar, new UIUpdateArgs(BankruptcyBar));
+        
             if (BankruptcyBar < 0f) BankruptcyBar = 0f;
             if (BankruptcyBar > 1f) BankruptcyBar = 1f;
 
@@ -155,11 +142,15 @@ namespace Backend
         public void ResetStatus()
         {
             _bankruptcyNotified = false;
+            Money = 1000;
+            BrandLevel = 1;
+            BrandPoints = 0;
+            BankruptcyBar = 0;
+            foreach(FactoryStatusType type in Enum.GetValues(typeof(FactoryStatusType)))
+            {
+                NotifyFactoryStatus(type, new UIUpdateArgs(_factoryStatusValue[type]));
+            }
 
-            SetValue(FactoryStatusType.Money, Operation.Assignment, 1000);
-            SetValue(FactoryStatusType.BrandPoints, Operation.Assignment, 0);
-            SetValue(FactoryStatusType.BrandLevel, Operation.Assignment, 1);
-            SetValue(FactoryStatusType.BankruptcyBar, Operation.Assignment, 0);
         }
     }
 }
