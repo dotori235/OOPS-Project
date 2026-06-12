@@ -6,19 +6,28 @@ namespace Backend
     public abstract class Machine : MonoBehaviour
     {
         [SerializeField] private float _upgradeInterval = 1f;
+        [SerializeField] private float _maxHp = 100f;
+        [SerializeField] private float _hpLossRate = 0.2f;
+        [SerializeField] private float _minUpgradableHp = 30f;
         private int _level = 1;
         private float _cooldown = 0f;
         private float _upgradeAmount = 1f;
+        private float _hp;
         private Renderer   _renderer;
         private MachineType _type;
         public int Level { get => _level; private set => _level = value; }
         public float UpgradeInterval { get => _upgradeInterval; private set => _upgradeInterval = value; }
         public float UpgradeAmount { get => _upgradeAmount; private set => _upgradeAmount = value; }
+        public float Hp { get => _hp; private set => _hp = value; }
+        public float MaxHp { get => _maxHp; private set => _maxHp = value; }
+        public float HpRatio { get => _hp / _maxHp; }
 
         public static float InstallPrice { get => 200f; }
         public static float LevelUpPriceCoeff { get => 100; }
+        public static float RepairPrice { get => 150f; }
         private void Start()
         {
+            _hp = _maxHp;
             _renderer = GetComponent<Renderer>();
             SetAlpha(0.2f);
         }
@@ -55,11 +64,25 @@ namespace Backend
             }
         }
 
+        public bool CanLevelUp()
+        {
+            return _hp >= _minUpgradableHp;
+        }
+
         public virtual void LevelUp()
         {
+            // HP gates upgrades: a worn machine must be repaired before leveling again.
+            if (!CanLevelUp()) return;
+
             _level++;
             _upgradeAmount += 0.5f;
             _upgradeInterval = Mathf.Max(0.2f, _upgradeInterval * 0.9f);
+            _hp *= 1f - _hpLossRate;
+        }
+
+        public void Repair()
+        {
+            _hp = _maxHp;
         }
 
         public abstract StatType GetTargetStat();

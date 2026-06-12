@@ -163,6 +163,30 @@ BeltBlock + MachineManager + 패널 UI가 대체 완료한 죽은 경로라 전�
 `_itemPositions`, 주석 처리된 끝 도달 판매 로직(판매는 SellBlock 트리거 담당),
 디버그 `Input.GetKeyDown(P)`, `MachineSpaces` 프로퍼티와 중복인 `GetMachineSpaces()`.
 
+### 11. 기계 HP 및 수리
+
+**결정**: `Machine`에 내구도(HP) 개념을 도입한다. HP는 최대 `_maxHp`(기본 100, 100% 기준)에서
+시작하고, `LevelUp()` 1회마다 **비율**로 감소한다(`_hp *= 1 - _hpLossRate`, 기본 0.2 = 20%).
+HP가 `_minUpgradableHp`(기본 30) 미만이면 `CanLevelUp()`이 false가 되어 더 이상 업그레이드할 수
+없다 — 단, **가공(`OnTriggerStay`)은 HP와 무관하게 계속된다**. `Repair()`는 HP를 `_maxHp`로
+100% 복구한다. 수리 비용은 고정값 `RepairPrice`(static, 기본 150)로 노출한다.
+
+**이유**: 무한 업그레이드를 막고 "업그레이드 ↔ 수리"의 자원 순환을 만들기 위함. 비율 감소를
+택한 이유는 고정 감소와 달리 HP가 0에 점근해 완전히 망가지지 않으면서도, 횟수가 쌓일수록
+한계가 분명해지기 때문이다(20% 기준 100→80→64→51→41→33→26에서 차단). 가공을 막지 않고
+업그레이드만 차단하는 쪽을 택해, 수리를 미뤄도 생산은 유지되되 성장은 멈추는 트레이드오프를
+플레이어에게 부여한다.
+
+**경계(레이어 패턴 준수)**: 결제는 백엔드가 하지 않는다. 기존 `LevelUp`/`InstallPrice` 패턴과
+동일하게 — 백엔드 `Machine`은 상태(`Hp`/`HpRatio`/`CanLevelUp`)와 가격(`RepairPrice`)만
+노출하고, 실제 돈 차감(`FactoryStatus.ModifyMoney`)·버튼·게이지는 FrontEnd가 담당한다.
+`LevelUp()` 내부에도 `CanLevelUp()` 방어 가드를 두어, FrontEnd가 체크를 누락해도 닳은 기계가
+잘못 강화되지 않도록 한다.
+
+**다음 단계(FrontEnd, 범위 밖)**: `BeltBlock.MachineLevelUp()`이 결제 **전** `_machine.CanLevelUp()`을
+확인하도록 수정, 수리 버튼(`MachineModifyUI` + `MachineModifyButton` 파생)·HP 게이지
+(`SliderUIView` 파생)·`RepairPrice` 결제 연결, 프리팹/씬 와이어링. 이 PR에는 포함하지 않는다.
+
 ---
 
 ## FrontEnd Design
@@ -280,7 +304,7 @@ GameManager   ──(IGameStateSubject)──────► GameStateUI ──�
 | `FactoryStatus` | 전역 상태 읽기/쓰기 + 변경 통지 + 파산바 자연 가감 | 전역 상태 항목 추가/제거 시 |
 | `EventBus` | 이벤트 publish/subscribe | 이벤트 시스템 교체 시 |
 | `Item` 계열 | 스탯 보유/강화/가격 계산 + 자체 시각 표현 | 아이템 스탯·불량 규칙 변경 시 |
-| `Machine` 계열 | 근접 아이템 스탯 강화 (Grinder=AP·불량가능, Welder=DU, Painter=SP·불량가능) | 강화 규칙 변경 시 |
+| `Machine` 계열 | 근접 아이템 스탯 강화 (Grinder=AP·불량가능, Welder=DU, Painter=SP·불량가능) + 내구도(HP) 관리: 업그레이드 시 비율 차감, 임계 미만이면 업그레이드 차단, 수리로 100% 복구 | 강화 규칙·내구도/수리 규칙 변경 시 |
 
 ---
 
