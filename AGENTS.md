@@ -133,6 +133,7 @@ Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyButton_Sell.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_Level.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_LevelUpPrice.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_MachineType.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_RepairPrice.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineSelectButton.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/TrackModifyButton_LevelUp.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/TrackModifyUIView_Level.cs

@@ -187,12 +187,13 @@ HP가 `_minUpgradableHp`(기본 30) 미만이면 `CanLevelUp()`이 false가 되�
 - `BeltBlock`: `MachineLevelUp()`이 결제 **전** `_machine.CanLevelUp()`을 확인(닳은 기계에 헛돈 차감
   방지), `MachineRepair()`(고정 `RepairPrice` 결제 → `Machine.Repair()`), `MachineHpRatio`/
   `MachineRepairPrice`/`MachineCanLevelUp` 노출.
-- `MachineModifyButton_Repair`(── `MachineModifyButton` 파생)와 `MachineHpUIView`(── `SliderUIView`
-  파생, `HpRatio`를 0~1 게이지로 표시) 신설.
-- `MachineModifyUI`: `_hpGauge`/`repairBtn`(+선택적 `_repairPayTxt`) 직렬화 필드 추가, 옵저버 구독·
-  `OnBlockChanged` 갱신·`OnButtonSelected` 분기 와이어링.
-- 씬(`FrontEnd.unity`): MachineModify 패널(VerticalLayoutGroup)에 Repair 버튼·HP 슬라이더 배치 후
-  레퍼런스 연결.
+- `MachineModifyButton_Repair`(── `MachineModifyButton` 파생), `MachineHpUIView`(── `SliderUIView`
+  파생, `HpRatio`를 0~1 게이지로 표시), `MachineModifyUIView_RepairPrice`(── `TextUIView` 파생,
+  접두사 "Repair Price: ") 신설.
+- `MachineModifyUI`: `_hpGauge`/`_repairPayTxt`/`repairBtn` 직렬화 필드 추가, 옵저버 구독·
+  `OnBlockChanged` 갱신(HP 게이지 + 수리비 텍스트)·`OnButtonSelected` 분기 와이어링.
+- 씬(`FrontEnd.unity`): MachineModify 패널(VerticalLayoutGroup)에 Repair 버튼·HP 슬라이더·수리비
+  텍스트(버튼 바로 위) 배치 후 레퍼런스 연결.
 
 ---
 

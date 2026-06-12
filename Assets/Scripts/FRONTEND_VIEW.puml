@@ -161,6 +161,7 @@ class RoundUIView_CurrentAP
 class MachineModifyUIView_MachineType
 class MachineModifyUIView_Level
 class MachineModifyUIView_LevelUpPrice
+class MachineModifyUIView_RepairPrice
 class TrackModifyUIView_Level
 class TrackModifyUIView_LevelUpPrice
 class TimeScaleTextUIView
@@ -177,6 +178,7 @@ TextUIView <|-- RoundUIView_CurrentAP
 TextUIView <|-- MachineModifyUIView_MachineType
 TextUIView <|-- MachineModifyUIView_Level
 TextUIView <|-- MachineModifyUIView_LevelUpPrice
+TextUIView <|-- MachineModifyUIView_RepairPrice
 TextUIView <|-- TrackModifyUIView_Level
 TextUIView <|-- TrackModifyUIView_LevelUpPrice
 TextUIView <|-- TimeScaleTextUIView
