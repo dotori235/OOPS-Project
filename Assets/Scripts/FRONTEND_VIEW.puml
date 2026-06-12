@@ -166,6 +166,7 @@ class TrackModifyUIView_LevelUpPrice
 class TimeScaleTextUIView
 class BrandPointUIView
 class BankruptcyUIView
+class MachineHpUIView
 
 TextUIView <|-- MoneyUIView
 TextUIView <|-- BrandLevelUIView
@@ -181,6 +182,7 @@ TextUIView <|-- TrackModifyUIView_LevelUpPrice
 TextUIView <|-- TimeScaleTextUIView
 SliderUIView <|-- BrandPointUIView
 SliderUIView <|-- BankruptcyUIView
+SliderUIView <|-- MachineHpUIView
 
 ' stack the leaf views into a 4-column grid instead of
 ' one very wide rank

@@ -6,19 +6,24 @@ public class MachineModifyUI : UIPanelBase
     [SerializeField] private UIView _machineTypeTxt;
     [SerializeField] private UIView _levelTxt;
     [SerializeField] private UIView _levelUpPayTxt;
+    [SerializeField] private UIView _hpGauge;
+    [SerializeField] private UIView _repairPayTxt;
     [SerializeField] private MachineModifyButton levelupBtn;
     [SerializeField] private MachineModifyButton sellBtn;
+    [SerializeField] private MachineModifyButton repairBtn;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private void Start()
     {
         levelupBtn?.RegisterObserver(this);
         sellBtn?.RegisterObserver(this);
+        repairBtn?.RegisterObserver(this);
         Panel.SetActive(false);
     }
     private void OnDestroy()
     {
         levelupBtn?.UnregisterObserver(this);
         sellBtn?.UnregisterObserver(this);
+        repairBtn?.UnregisterObserver(this);
     }
     public override void OnBlockChanged(IBlockSubject beltBlock)
     {
@@ -30,6 +35,8 @@ public class MachineModifyUI : UIPanelBase
         _machineTypeTxt.SetValue(type);
         _levelTxt.SetValue(level);
         _levelUpPayTxt.SetValue(pay);
+        _hpGauge?.SetValue(new SliderUpdateArgs(bb.MachineHpRatio, 1f));
+        _repairPayTxt?.SetValue(new TextUpdateArgs(bb.MachineRepairPrice.ToString()));
     }
 
     public override void OnButtonSelected(IUIPanelButtonSubject button)
@@ -42,6 +49,10 @@ public class MachineModifyUI : UIPanelBase
         {
             (TargetBlock as BeltBlock).SellMachine();
             CloseUI();
+        }
+        if (button is MachineModifyButton_Repair repairBtn)
+        {
+            (TargetBlock as BeltBlock).MachineRepair();
         }
         //CloseUI();
     }

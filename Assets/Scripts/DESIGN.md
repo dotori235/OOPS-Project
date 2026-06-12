@@ -183,9 +183,16 @@ HP가 `_minUpgradableHp`(기본 30) 미만이면 `CanLevelUp()`이 false가 되�
 `LevelUp()` 내부에도 `CanLevelUp()` 방어 가드를 두어, FrontEnd가 체크를 누락해도 닳은 기계가
 잘못 강화되지 않도록 한다.
 
-**다음 단계(FrontEnd, 범위 밖)**: `BeltBlock.MachineLevelUp()`이 결제 **전** `_machine.CanLevelUp()`을
-확인하도록 수정, 수리 버튼(`MachineModifyUI` + `MachineModifyButton` 파생)·HP 게이지
-(`SliderUIView` 파생)·`RepairPrice` 결제 연결, 프리팹/씬 와이어링. 이 PR에는 포함하지 않는다.
+**FrontEnd 연결(구현 완료)**:
+- `BeltBlock`: `MachineLevelUp()`이 결제 **전** `_machine.CanLevelUp()`을 확인(닳은 기계에 헛돈 차감
+  방지), `MachineRepair()`(고정 `RepairPrice` 결제 → `Machine.Repair()`), `MachineHpRatio`/
+  `MachineRepairPrice`/`MachineCanLevelUp` 노출.
+- `MachineModifyButton_Repair`(── `MachineModifyButton` 파생)와 `MachineHpUIView`(── `SliderUIView`
+  파생, `HpRatio`를 0~1 게이지로 표시) 신설.
+- `MachineModifyUI`: `_hpGauge`/`repairBtn`(+선택적 `_repairPayTxt`) 직렬화 필드 추가, 옵저버 구독·
+  `OnBlockChanged` 갱신·`OnButtonSelected` 분기 와이어링.
+- 씬(`FrontEnd.unity`): MachineModify 패널(VerticalLayoutGroup)에 Repair 버튼·HP 슬라이더 배치 후
+  레퍼런스 연결.
 
 ---
 

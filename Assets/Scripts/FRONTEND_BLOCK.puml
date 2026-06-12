@@ -54,13 +54,23 @@ class BeltBlock << MonoBehaviour >> {
   +MachineLevel: float <<get>>
   +MachineLevelUpPrice: float <<get>>
   +MachineSellPrice: float <<get>>
+  +MachineRepairPrice: float <<get>>
+  +MachineHpRatio: float <<get>>
+  +MachineCanLevelUp: bool <<get>>
   --
   +UIType(): BlockUIType
   +CreateMachine(type: MachineType): bool
   +SellMachine(): void
   +MachineLevelUp(): bool
+  +MachineRepair(): bool
   -PayMoney(pay: float): bool
 }
+
+note bottom of BeltBlock
+  MachineLevelUp() pre-checks Machine.CanLevelUp() before paying
+  (a worn machine must be repaired first). MachineRepair() pays the
+  fixed RepairPrice and calls Machine.Repair().
+end note
 
 class TrackBlock << MonoBehaviour >> {
   -_beltTrack: BeltTrack
@@ -95,7 +105,7 @@ BlockBase <|-- SellBlock
 SellBlock ..|> ISellBlockSubject
 BeltBlockManager ..|> IBeltTrackLevelObserver
 BeltBlockManager "1" *-- "0..*" BeltBlock : beltBlocks
-BeltBlock ..> "Machine (Backend)" : Instantiate/LevelUp
+BeltBlock ..> "Machine (Backend)" : Instantiate/LevelUp/Repair
 BeltBlock ..> "FactoryStatus (Backend)" : ModifyMoney
 TrackBlock ..> "BeltTrack (Backend)" : LevelUp
 SellBlock ..> "ISellable (Backend)" : detects
