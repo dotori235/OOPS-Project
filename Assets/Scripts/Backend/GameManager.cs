@@ -1,19 +1,20 @@
 using UnityEngine;
-
+using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 namespace Backend
 {
-    public class GameManager : MonoBehaviour, IGameEventListener
+    public class GameManager : MonoBehaviour, IGameEventListener, IGameStateSubject
     {
+        private List<IObserver> _observers = new List<IObserver>();
         private readonly GameStateMachine _stateMachine = new GameStateMachine();
 
-        private readonly ReadyState _readyState = new ReadyState();
         private readonly PlayingState _playingState = new PlayingState();
         private readonly PausedState _pausedState = new PausedState();
         private readonly GameOverState _gameOverState = new GameOverState();
 
         private void Awake()
         {
-            _stateMachine.ChangeState(_readyState);
+            SetGameState(_playingState);
         }
 
         private void Start()
@@ -36,23 +37,26 @@ namespace Backend
         {
             if (e is BankruptcyEvent)
             {
-                _stateMachine.ChangeState(_gameOverState);
+                SetGameState(_gameOverState);
             }
         }
-
+        public void PauseResume()
+        {
+            if (_stateMachine.Current is PlayingState) PauseGame();
+            else if (_stateMachine.Current is PausedState) ResumeGame();
+        }
         public void StartGame()
         {
-            if (_stateMachine.Current is ReadyState)
-            {
-                _stateMachine.ChangeState(_playingState);
-            }
+
+            SetGameState(_playingState);
+            
         }
 
         public void PauseGame()
         {
             if (_stateMachine.Current is PlayingState)
             {
-                _stateMachine.ChangeState(_pausedState);
+                SetGameState(_pausedState);
             }
         }
 
@@ -60,14 +64,48 @@ namespace Backend
         {
             if (_stateMachine.Current is PausedState)
             {
-                _stateMachine.ChangeState(_playingState);
+                SetGameState(_playingState);
             }
         }
 
+        private void SetGameState(IGameState state)
+        {
+            _stateMachine.ChangeState(state);
+            NotifyGameState();
+        }
         public void ResetGame()
         {
-            FactoryStatus.GetInstance().ResetStatus();
-            _stateMachine.ChangeState(_playingState);
+            SceneManager.LoadScene("FrontEnd");
+            //FactoryStatus.GetInstance().ResetStatus();
+            //_stateMachine.ChangeState(_playingState);
+        }
+        public void SetTimeScale(float timeScale)
+        {
+            _playingState.TimeScale = timeScale;
+        }
+        public void RegisterObserver(IObserver observer)
+        {
+            if (_observers.Contains(observer)) return;
+            _observers.Add(observer);
+        }
+        public void UnregisterObserver(IObserver observer)
+        {
+            if(!_observers.Contains(observer)) return;
+            _observers.Remove(observer);
+        }
+        public void NotifyObservers()
+        {
+            
+        }
+        public void NotifyGameState()
+        {
+            foreach (var observer in _observers)
+            {
+                if (observer is IGameStateObserver gsOb)
+                {
+                    gsOb.OnGameStateChanged(_stateMachine.Current);
+                }
+            }
         }
     }
 }

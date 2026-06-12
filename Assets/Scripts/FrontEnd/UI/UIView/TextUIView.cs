@@ -3,7 +3,7 @@ using TMPro;
 
 public class TextUIView : UIView
 {
-    private TextMeshProUGUI _text;
+    [SerializeField]private TextMeshProUGUI _text;
     private string prefix;
     private string suffix;
     public string Prefix {  get { return prefix; } protected set { prefix = value; } }

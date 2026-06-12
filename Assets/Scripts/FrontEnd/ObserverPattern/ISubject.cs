@@ -35,3 +35,8 @@ public interface ISellBlockSubject : ISubject
 {
     public void NotifySellBlock(ISellable item);
 }
+
+public interface IGameStateSubject : ISubject
+{
+    public void NotifyGameState();
+}

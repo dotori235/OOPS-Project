@@ -52,7 +52,7 @@ public class BlockSelect : MonoBehaviour
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
-        if (!Physics.Raycast(ray, out RaycastHit hit, 100f, layerMask)) {  return; }
+        if (!Physics.Raycast(ray, out RaycastHit hit, 100f, layerMask)) { CloseAllUI(); return; }
 
         if (!hit.collider.TryGetComponent(out BlockBase clickedBlock)) return;
 
