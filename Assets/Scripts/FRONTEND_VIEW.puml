@@ -68,6 +68,12 @@ package "ObserverPattern" {
   interface IUIPanelButtonObserver {
     +OnButtonSelected(button: IUIPanelButtonSubject): void
   }
+  interface IGameStateSubject {
+    +NotifyGameState(): void
+  }
+  interface IGameStateObserver {
+    +OnGameStateChanged(state: IGameState): void
+  }
 
   ISubject  <|-- IFactoryStatusSubject
   ISubject  <|-- IRoundSubject
@@ -75,12 +81,14 @@ package "ObserverPattern" {
   ISubject  <|-- IBlockSubject
   ISubject  <|-- ISellBlockSubject
   ISubject  <|-- IUIPanelButtonSubject
+  ISubject  <|-- IGameStateSubject
   IObserver <|-- IFactoryStatusObserver
   IObserver <|-- IRoundObserver
   IObserver <|-- IBeltTrackLevelObserver
   IObserver <|-- IBlockObserver
   IObserver <|-- ISellBlockObserver
   IObserver <|-- IUIPanelButtonObserver
+  IObserver <|-- IGameStateObserver
 
   ' stack the 12 derived interfaces into columns of three
   ' instead of one very wide rank
@@ -155,6 +163,7 @@ class MachineModifyUIView_Level
 class MachineModifyUIView_LevelUpPrice
 class TrackModifyUIView_Level
 class TrackModifyUIView_LevelUpPrice
+class TimeScaleTextUIView
 class BrandPointUIView
 class BankruptcyUIView
 
@@ -169,6 +178,7 @@ TextUIView <|-- MachineModifyUIView_Level
 TextUIView <|-- MachineModifyUIView_LevelUpPrice
 TextUIView <|-- TrackModifyUIView_Level
 TextUIView <|-- TrackModifyUIView_LevelUpPrice
+TextUIView <|-- TimeScaleTextUIView
 SliderUIView <|-- BrandPointUIView
 SliderUIView <|-- BankruptcyUIView
 
@@ -210,12 +220,26 @@ class RoundUI << MonoBehaviour >> {
   +OnRoundChanged(s: IRoundSubject, arg: UIUpdateArgs): void
 }
 
+class GameStateUI << MonoBehaviour >> {
+  -_gameManager: GameManager <<SerializeField>>
+  -_prBtnTxt: UIView <<SerializeField>>
+  -_timeScaleTxt: UIView <<SerializeField>>
+  --
+  +OnGameStateChanged(state: IGameState): void
+  +OnPauseResumeClick(): void
+  +OnRestartClick(): void
+  +OnTimeScaleChanged(f: float): void
+}
+
 FactoryStatusUI ..|> IFactoryStatusObserver
 RoundUI ..|> IRoundObserver
+GameStateUI ..|> IGameStateObserver
 FactoryStatusUI "1" o-- "0..*" UIView : uiViews
 RoundUI "1" o-- "4" UIView
+GameStateUI "1" o-- "2" UIView
 FactoryStatusUI ..> "FactoryStatus\n(Backend)" : GetInstance().RegisterObserver
 RoundUI ..> "RoundManager\n(Backend)" : Instance.RegisterObserver
+GameStateUI ..> "GameManager\n(Backend)" : RegisterObserver / Pause·Resume·Reset·SetTimeScale
 
 ' anchor otherwise-disconnected nodes below the graph
 ' instead of letting them widen the layout sideways

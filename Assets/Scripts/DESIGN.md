@@ -9,7 +9,7 @@
 
 에이전트는 클래스 생성/수정 시 반드시 **해당 레이어의 puml**도 함께 업데이트해야 한다.
 
-> 최신화: 2026-06-11 (main, PR #8·#9 머지 직후 기준)
+> 최신화: 2026-06-12 (main, PR #13 머지 직후 기준)
 
 ---
 
@@ -78,7 +78,7 @@ RoundManager/SellManager의 구현 선언을 삭제했다.
 
 **결정**: Item을 Pure C#에서 MonoBehaviour 클래스로 전환
 
-**이유**: 게임 화면상 물리 좌표 이동(MoveItem) 및 시각적 표현(불량 발생 시 머티리얼 색상 빨간색 변경 등)을 컴포넌트와 직접 연계하고, 물리 충돌(Trigger)을 통해 기계 가공 처리를 매끄럽게 처리하기 위함입니다.
+**이유**: 게임 화면상 물리 좌표 이동(MoveItem) 및 시각적 표현(불량 발생 시 자식 오브젝트 토글 — 정상 메시 끄고 불량 메시 켜기, `MakeDefective`)을 컴포넌트와 직접 연계하고, 물리 충돌(Trigger)을 통해 기계 가공 처리를 매끄럽게 처리하기 위함입니다. (불량 표현은 PR #13에서 머티리얼 색상 변경 → 자식 오브젝트 전환으로 바뀜. item.prefab은 정상/불량 두 자식 메시를 가진다)
 
 **트레이드오프**: 아이템 수가 많아지면 GameObject 관리 비용이 커진다. 성능 문제가 생기면
 오브젝트 풀링을 우선 검토할 것.
@@ -88,6 +88,11 @@ RoundManager/SellManager의 구현 선언을 삭제했다.
 **결정**: FactoryStatus를 MonoBehaviour 싱글톤으로 전환하고, FrontEnd UI 화면에 데이터를 전파할 수 있도록 IFactoryStatusSubject(Observer 패턴)를 구현
 
 **이유**: 프레임별로 자금이 음수일 때 파산바 게이지를 실시간으로 가산(Update)하고, 프런트엔드 UI 컴포넌트들이 실시간으로 상태 변경을 구독하여 화면을 갱신하기 위함입니다. 또한 내부 상태 변수를 Dictionary<FactoryStatusType, float>로 추상화하여 상태의 유연한 관리와 전파를 용이하게 하였습니다.
+
+> **PR #13 정리**: 상태 변경을 `SetValue(type, Operation, value)`로 우회하던 헬퍼를 제거하고,
+> `ModifyMoney`/`UpdateBankruptcyBar`/`ResetStatus`가 프로퍼티를 직접 갱신한 뒤
+> `NotifyFactoryStatus`를 호출하도록 단순화했다(돈은 `Mathf.Round`로 표시값 정리).
+> 그 결과 `Operation` enum은 호출처가 사라진 죽은 코드가 되었다 (아래 "알려진 어긋남" 참고).
 
 ### 6. Machine Configure(BeltTrack) 동적 초기화 (폐기 — refactor/oop-solid Phase 3)
 
@@ -119,14 +124,27 @@ ItemSoldEvent·RoundManager까지 수정이 번졌다(OCP 위반). Stat 도입 �
 ### 9. 게임 흐름 FSM + 게임오버 이벤트화
 
 **결정**: GameManager의 게임 흐름을 `IGameState{Enter/Update/Exit}`(Pure C#) +
-`GameStateMachine`으로 관리. 상태는 Ready → Playing ⇄ Paused, Playing → GameOver.
-기존 StartGame/PauseGame/ResetGame의 `Time.timeScale` 조작은 상태 Enter로 흡수했다.
+`GameStateMachine`으로 관리. 상태는 Playing ⇄ Paused, Playing → GameOver.
 게임오버는 매 프레임 `IsGameOver()` 폴링 대신, `FactoryStatus`가 파산바 1.0 도달 시
 `BankruptcyEvent`를 1회 발행하고 GameManager가 수신해 GameOver로 전이한다.
 
 **이유**: 게임 흐름 상태가 timeScale 값에 암묵적으로 흩어져 있어 상태 추가(예: 일시정지
 메뉴, 라운드 전환 연출)가 어려웠다. FSM으로 상태와 전이를 명시하면 새 상태 추가가
 클래스 추가로 끝난다(OCP). 폴링 제거로 GameManager의 Update는 상태 위임만 남는다.
+
+**PR #13 변경**:
+- **ReadyState 폐기**: 진입 직후 대기 상태가 필요 없어 `ReadyState`를 삭제하고, `Awake()`에서
+  곧바로 `PlayingState`로 진입한다. FSM은 이제 Playing ⇄ Paused, Playing → GameOver.
+- **배속 조절**: 고정 `timeScale=1` 대신 `PlayingState`가 `TimeScale` 프로퍼티를 들고
+  `Update()`에서 매 프레임 `Time.timeScale`에 반영한다. `GameManager.SetTimeScale(float)`로
+  값을 바꾼다(일시정지/게임오버 진입 시에는 `Time.timeScale=0`). 게임 진행 중 배속(예: 1x/2x)
+  변경을 위해 도입.
+- **상태 전파(Observer)**: `GameManager`가 `IGameStateSubject`를 구현해, 상태 전이 시
+  `NotifyGameState()`로 `GameStateUI`(IGameStateObserver)에 현재 `IGameState`를 통지한다.
+  UI는 이를 받아 일시정지/재개 버튼 라벨 등을 갱신한다. 토글 진입점 `PauseResume()`도 추가.
+- **ResetGame 재시작 방식**: `FactoryStatus.ResetStatus()` 호출 대신 `"FrontEnd"` 씬을
+  다시 로드한다(`SceneManager.LoadScene`). `ResetStatus()`는 전 항목 초기화 + 전체 통지로
+  보강되어 남아 있으나 현재 `ResetGame`에서는 호출하지 않는다.
 
 **함께 정리**: GameManager의 기계 배치/강화/제거 경로(PlaceMachine/LevelUpMachine/
 RemoveMachine/LevelUpBelt/_placedMachines/기계 프리팹 필드)는 FrontEnd의
@@ -154,8 +172,8 @@ BeltBlock + MachineManager + 패널 UI가 대체 완료한 죽은 경로라 전�
 | 영역 | 클래스 | 책임 |
 |---|---|---|
 | `ObserverPattern/` | `ISubject`/`IObserver` + 파생 6쌍 | 레이어 간·UI 내부 통지 인터페이스 정의 |
-| `UI/UIView/` | `UIView` + Text/Slider/Button 파생, `UIUpdateArgs` 계열 | `UIUpdateArgs`를 받아 개별 위젯(TMP 텍스트, 슬라이더) 갱신 |
-| `UI/` | `FactoryStatusUI`, `RoundUI` | 백엔드 Subject 구독, 받은 값을 UIView들로 분배 |
+| `UI/UIView/` | `UIView` + Text/Slider/Button 파생(`TimeScaleTextUIView` 포함), `UIUpdateArgs` 계열 | `UIUpdateArgs`를 받아 개별 위젯(TMP 텍스트, 슬라이더) 갱신 |
+| `UI/` | `FactoryStatusUI`, `RoundUI`, `GameStateUI` | 백엔드 Subject 구독, 받은 값을 UIView들로 분배. `GameStateUI`는 GameManager 상태/배속 구독 + 버튼 입력 중계 |
 | `UI/MachineUI/UIPanel/` | `UIPanelBase` 파생(MachineSelectUI, MachineModifyUI, TrackModifyUI) | 블록 선택 시 열리는 패널. 블록 상태 표시 + 버튼 입력 처리 |
 | `UI/MachineUI/UIContents/` | `UIPanelButtonBase` 파생 버튼, 패널용 UIView 파생 | 버튼 클릭을 Subject로 패널에 통지 |
 | `BeltBlock/` | `BlockBase` 파생(BeltBlock, TrackBlock, SellBlock), `BeltBlockManager` | 씬 상의 선택 가능한 블록. 기계 설치/판매/강화, 트랙 강화, 판매 지점 감지 |
@@ -216,6 +234,7 @@ Awake에서 설정한다.
 | `SellBlock : ISellBlockSubject` (FrontEnd) | `BeltTrack : ISellBlockObserver` (백엔드) | 판매 지점 도달 아이템 (OnTriggerEnter 감지) |
 | `BlockBase : IBlockSubject` (FrontEnd) | `UIPanelBase : IBlockObserver` (FrontEnd) | 블록 상태 변경 → 패널 텍스트 갱신 |
 | `UIPanelButtonBase : IUIPanelButtonSubject` (FrontEnd) | `UIPanelBase : IUIPanelButtonObserver` (FrontEnd) | 버튼 클릭 |
+| `GameManager : IGameStateSubject` (백엔드) | `GameStateUI : IGameStateObserver` (FrontEnd) | 게임 상태 전이(현재 `IGameState`) → 일시정지/재개 버튼 라벨 등 갱신 |
 
 **규칙**: Observer는 `Start()`에서 `RegisterObserver`, `OnDestroy()`에서
 `UnregisterObserver`를 반드시 호출할 것.
@@ -239,9 +258,12 @@ RoundManager ──라운드 정산(보상/벌금)──► FactoryStatus
 FactoryStatus ──(IFactoryStatusSubject)──► FactoryStatusUI ──► UIView들
 RoundManager  ──(IRoundSubject)─────────► RoundUI ──► RoundUIView들
 BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManager
+GameManager   ──(IGameStateSubject)──────► GameStateUI ──► pause/resume 버튼 라벨 등
 
 [입력] BlockSelect ──레이캐스트──► BlockBase.UIType() ──► UIPanelBase.OpenUI()
+       (빈 공간 클릭 시 CloseAllUI)
        패널 버튼 클릭 ──(IUIPanelButtonSubject)──► 패널 ──► 블록 메서드 호출
+       GameStateUI 버튼/슬라이더 ──► GameManager.PauseResume / ResetGame / SetTimeScale
 ```
 
 ---
@@ -254,7 +276,7 @@ BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManage
 | `ItemSpawner` | 스폰 타이밍 및 아이템 프리팹 인스턴스 생성 | 스폰 로직 변경 시 |
 | `SellManager` | 가격 계산, 판매/벌금 처리, ItemSoldEvent 발행 | 판매 공식 변경 시 |
 | `RoundManager` | 라운드 타이머, 평균 AP 기준치, 보상/패널티 | 라운드 규칙 변경 시 |
-| `GameManager` | 게임 흐름 FSM 관리 (Ready/Playing/Paused/GameOver 전이) | 게임 진입/종료 흐름 변경 시 |
+| `GameManager` | 게임 흐름 FSM 관리 (Playing/Paused/GameOver 전이) + 배속 설정 + 상태 전파(IGameStateSubject) | 게임 진입/종료 흐름·배속 변경 시 |
 | `FactoryStatus` | 전역 상태 읽기/쓰기 + 변경 통지 + 파산바 자연 가감 | 전역 상태 항목 추가/제거 시 |
 | `EventBus` | 이벤트 publish/subscribe | 이벤트 시스템 교체 시 |
 | `Item` 계열 | 스탯 보유/강화/가격 계산 + 자체 시각 표현 | 아이템 스탯·불량 규칙 변경 시 |
@@ -268,17 +290,23 @@ BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManage
 
 1. **백엔드 → FrontEnd 역방향 의존**: `BeltTrack`이 FrontEnd의 `BlockBase`(`_sellBlock`)를
    SerializeField로 참조하고 `ISellBlockObserver`를 구현한다. `RoundManager`도 FrontEnd의
-   `UIUpdateArgs`/`RoundParameters`를 직접 생성한다. 브리지 인터페이스와 UIUpdateArgs가
-   FrontEnd 폴더에 있어 백엔드가 UI 레이어 코드 없이 컴파일되지 않는다 — 중립 위치(예:
-   `Assets/Scripts/Common/`)로 옮기는 정리가 필요. 폴더 재편이므로 승인 후 진행할 것
+   `UIUpdateArgs`/`RoundParameters`를 직접 생성한다. PR #13에서 `GameManager`도 FrontEnd의
+   `IObserver`/`IGameStateSubject`(ObserverPattern)에 의존하게 되어 같은 어긋남이 확대됐다.
+   브리지 인터페이스와 UIUpdateArgs가 FrontEnd 폴더에 있어 백엔드가 UI 레이어 코드 없이
+   컴파일되지 않는다 — 중립 위치(예: `Assets/Scripts/Common/`)로 옮기는 정리가 필요.
+   폴더 재편이므로 승인 후 진행할 것
 2. **싱글톤 제한 위반**: 원칙은 FactoryStatus, EventBus 둘만인데
    `RoundManager.Instance`, `SellManager.Instance`, `MachineManager.Instance`가 추가됨.
    사용처가 있어 단순 삭제 불가(RoundUI, BeltTrack, BeltBlock이 의존) — 인스펙터 참조로
    바꾸려면 씬 재연결 필요
-> 1파일 1클래스 위반(Operation/UIUpdateArgs 계열/RoundParameters/BlockUIType 동거,
-> `MachineModifybutton_Sell.cs` 파일명 오타)과 불필요/위험 using
-> (`UnityEditor.UIElements`, NUnit, Newtonsoft 등)은 refactor/oop-solid Phase 0에서,
-> `GameManager.Awake()`의 `FindAnyObjectByType` 검색은 Phase 2(_managers 삭제)에서 해소됨.
+3. **`Operation` enum 죽은 코드**: PR #13에서 유일한 사용처 `FactoryStatus.SetValue`가
+   제거되면서 `Operation`(`Operation.cs`)은 호출처가 없는 죽은 코드가 됐다. 삭제 후보지만
+   파일/타입 제거이므로 별도 정리 작업에서 처리할 것
+> 1파일 1클래스 위반(Operation/UIUpdateArgs 계열/RoundParameters/BlockUIType 동거)과
+> 불필요/위험 using(`UnityEditor.UIElements`, NUnit, Newtonsoft 등)은
+> refactor/oop-solid Phase 0에서, `GameManager.Awake()`의 `FindAnyObjectByType` 검색은
+> Phase 2(_managers 삭제)에서 해소됨. `MachineModifyButton_Sell.cs` 파일명 오타도
+> 정정 완료.
 
 ---
 
