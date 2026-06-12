@@ -40,7 +40,7 @@ unity -batchmode -quit -projectPath . -buildTarget StandaloneWindows64 -logFile 
 > find Assets/Prefab  -type f -name "*.prefab"
 > ```
 
-<!-- STRUCTURE: 마지막 갱신 2026-06-11 (main, PR #8·#9 머지 직후 기준) -->
+<!-- STRUCTURE: 마지막 갱신 2026-06-12 (main, PR #13 머지 직후 기준) -->
 
 ```
 Assets/Prefab/BeltBlock.prefab
@@ -57,6 +57,9 @@ Assets/Scenes/FrontEnd.unity
 Assets/Scenes/SampleScene.unity
 Assets/Scenes/SampleUIScene.unity
 
+# 외부 임포트 에셋 (게임 로직 아님, 수정 대상 아님)
+Assets/LowPolyRPGWeapons_Lite/   (모델·프리팹·머티리얼·텍스처·오버뷰 씬)
+
 Assets/Scripts/BACKEND.puml
 Assets/Scripts/FRONTEND_VIEW.puml
 Assets/Scripts/FRONTEND_BLOCK.puml
@@ -71,9 +74,11 @@ Assets/Scripts/Backend/FactoryStatus.cs
 Assets/Scripts/Backend/FactoryStatusType.cs
 Assets/Scripts/Backend/GameEvent.cs
 Assets/Scripts/Backend/GameManager.cs
+Assets/Scripts/Backend/GameOverState.cs
+Assets/Scripts/Backend/GameStateMachine.cs
 Assets/Scripts/Backend/Grinder.cs
 Assets/Scripts/Backend/IGameEventListener.cs
-Assets/Scripts/Backend/IManager.cs
+Assets/Scripts/Backend/IGameState.cs
 Assets/Scripts/Backend/IMPLEMENTATION_REPORT.md
 Assets/Scripts/Backend/ISellable.cs
 Assets/Scripts/Backend/Item.cs
@@ -83,11 +88,16 @@ Assets/Scripts/Backend/IUpgradable.cs
 Assets/Scripts/Backend/Machine.cs
 Assets/Scripts/Backend/MachineType.cs
 Assets/Scripts/Backend/MarketEvent.cs
+Assets/Scripts/Backend/Operation.cs
 Assets/Scripts/Backend/Painter.cs
+Assets/Scripts/Backend/PausedState.cs
+Assets/Scripts/Backend/PlayingState.cs
 Assets/Scripts/Backend/RoundEndEvent.cs
 Assets/Scripts/Backend/RoundManager.cs
 Assets/Scripts/Backend/SellManager.cs
 Assets/Scripts/Backend/StandardItem.cs
+Assets/Scripts/Backend/Stat.cs
+Assets/Scripts/Backend/StatEntry.cs
 Assets/Scripts/Backend/StatType.cs
 Assets/Scripts/Backend/Welder.cs
 
@@ -97,6 +107,7 @@ Assets/Scripts/FrontEnd/BeltBlock/BlockBase.cs
 Assets/Scripts/FrontEnd/BeltBlock/SellBlock.cs
 Assets/Scripts/FrontEnd/BeltBlock/TrackBlock.cs
 Assets/Scripts/FrontEnd/InteractEvent/BlockSelect.cs
+Assets/Scripts/FrontEnd/InteractEvent/BlockUIType.cs
 Assets/Scripts/FrontEnd/InteractEvent/CameraMove.cs
 Assets/Scripts/FrontEnd/MachineData/MachineManager.cs
 Assets/Scripts/FrontEnd/MachineData/MachineInfoList/MachineInfoList.cs
@@ -108,6 +119,8 @@ Assets/Scripts/FrontEnd/MachineData/MachineInfos/Welder.asset
 Assets/Scripts/FrontEnd/ObserverPattern/IObserver.cs
 Assets/Scripts/FrontEnd/ObserverPattern/ISubject.cs
 Assets/Scripts/FrontEnd/UI/FactoryStatusUI.cs
+Assets/Scripts/FrontEnd/UI/GameStateUI.cs
+Assets/Scripts/FrontEnd/UI/RoundParameters.cs
 Assets/Scripts/FrontEnd/UI/RoundUI.cs
 Assets/Scripts/FrontEnd/UI/RoundUIView_CurrentAP.cs
 Assets/Scripts/FrontEnd/UI/RoundUIView_RoundNum.cs
@@ -115,7 +128,7 @@ Assets/Scripts/FrontEnd/UI/RoundUIView_TargetAP.cs
 Assets/Scripts/FrontEnd/UI/RoundUIView_TimeLimit.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyButton.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyButton_Levelup.cs
-Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifybutton_Sell.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyButton_Sell.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_Level.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_LevelUpPrice.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_MachineType.cs
@@ -134,8 +147,12 @@ Assets/Scripts/FrontEnd/UI/UIView/BrandPointUIView.cs
 Assets/Scripts/FrontEnd/UI/UIView/ButtonUIView.cs
 Assets/Scripts/FrontEnd/UI/UIView/MoneyUIView.cs
 Assets/Scripts/FrontEnd/UI/UIView/SliderUIView.cs
+Assets/Scripts/FrontEnd/UI/UIView/SliderUpdateArgs.cs
 Assets/Scripts/FrontEnd/UI/UIView/TextUIView.cs
+Assets/Scripts/FrontEnd/UI/UIView/TextUpdateArgs.cs
+Assets/Scripts/FrontEnd/UI/UIView/TimeScaleTextUIView.cs
 Assets/Scripts/FrontEnd/UI/UIView/UIType.cs
+Assets/Scripts/FrontEnd/UI/UIView/UIUpdateArgs.cs
 Assets/Scripts/FrontEnd/UI/UIView/UIView.cs
 ```
 
@@ -146,6 +163,21 @@ Assets/Scripts/FrontEnd/UI/UIView/UIView.cs
 - 파일 생성 전에 위 구조를 확인하고 적절한 위치를 먼저 명시할 것
 - 폴더가 없으면 생성해도 되지만, 생성 전에 명시할 것
 - 한 파일에 하나의 클래스만 작성. 파일명은 클래스명과 일치시킬 것
+
+---
+
+## Documentation Sync (문서 동기화 — 필수)
+
+> **원칙: 코드를 바꾼 그 작업 안에서 문서도 함께 바꾼다. 문서 갱신을 "나중에" 미루지 말 것.**
+
+프로젝트에 수정사항이 생기면 **같은 커밋/PR 안에서** 아래 문서를 즉시 함께 갱신한다. 코드 변경과 문서 갱신을 분리하지 말 것.
+
+- **파일 추가·삭제·이동·이름 변경** → 이 파일의 `<!-- STRUCTURE -->` 블록을 즉시 갱신하고, 상단 주석의 `마지막 갱신` 날짜·기준(머지된 PR 번호)을 함께 수정할 것
+- **클래스 생성·수정·삭제** → 해당 레이어의 puml을 함께 갱신 (Backend → `BACKEND.puml`, FrontEnd → `FRONTEND_VIEW`/`FRONTEND_BLOCK`/`FRONTEND_PANEL.puml` 중 해당 영역). 다이어그램에 한글 금지 (CI 러너에 한글 폰트 없음)
+- **설계 결정·통신 패턴·레이어 규칙 변경** → `Assets/Scripts/DESIGN.md`를 함께 갱신
+- **빌드/실행 방식 변경** → 이 파일의 `Build & Test` 섹션을 함께 갱신
+
+검증: 작업을 끝내기 전, 변경한 코드와 위 문서가 일치하는지 확인한다. 불일치 상태로 작업을 종료하지 말 것.
 
 ---
 
