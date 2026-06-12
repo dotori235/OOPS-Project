@@ -19,7 +19,7 @@ note as N1
   ItemSpawner, SellManager, RoundManager, GameManager, FactoryStatus
   <b>Bridge</b>: IFactoryStatusSubject, IRoundSubject,
   IBeltTrackLevelSubject, ISellBlockObserver etc. are defined in
-  FrontEnd/ObserverPattern/ — see FRONTEND.puml
+  FrontEnd/ObserverPattern/ — see FRONTEND_VIEW.puml
 end note
 
 ' ══════════════════════════════════════════════
@@ -279,7 +279,7 @@ class BeltTrack << MonoBehaviour >> {
 }
 
 note bottom of BeltTrack
-  Implements IBeltTrackLevelSubject + ISellBlockObserver (FRONTEND.puml).
+  Implements IBeltTrackLevelSubject + ISellBlockObserver (FRONTEND_VIEW.puml).
   Tile-based: TrackLength = _tileCount x _tileSize,
   MachineSpaces = _tileCount, level up = +1 tile
   (one extra sell tile sits at the end of the track).
@@ -342,7 +342,7 @@ class FactoryStatus << (S,#FFD700) MonoBehaviour singleton >> {
 }
 
 note bottom of FactoryStatus
-  Implements IFactoryStatusSubject (FRONTEND.puml).
+  Implements IFactoryStatusSubject (FRONTEND_VIEW.puml).
   Update() drifts the bankruptcy bar:
   +(-Money/2000)*dt while money < 0, else -dt/60
 end note

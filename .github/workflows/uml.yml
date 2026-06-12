@@ -6,7 +6,14 @@ on:
       - '**.puml'
   workflow_dispatch:
 
+# a newer push supersedes any in-flight run for the same branch
+concurrency:
+  group: uml-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
+  # pinned: "latest" can break rendering without any repo change
+  PLANTUML_VERSION: '1.2026.6'
   # default 4096px clips large diagrams during PNG export
   PLANTUML_LIMIT_SIZE: '16384'
 
@@ -33,7 +40,7 @@ jobs:
 
       - name: Download PlantUML
         run: |
-          curl -fsSL https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar \
+          curl -fsSL "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
             -o plantuml.jar
 
       - name: Generate SVG and PNG from .puml files
@@ -68,7 +75,21 @@ jobs:
           done < <(find docs/uml -name "*.svg" | sort)
           pdfunite "${pdf_dir}"/*.pdf UML.pdf
 
+      # On non-main branches, publish the diagrams as a downloadable
+      # artifact instead of pushing bot commits onto the branch
+      # (bot commits on PR branches caused conflicts and force-push
+      # accidents with the generated binaries)
+      - name: Upload diagrams as workflow artifact (non-main)
+        if: github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: uml-diagrams
+          path: |
+            docs/uml/
+            UML.pdf
+
       - name: Check for changes
+        if: github.ref == 'refs/heads/main'
         id: check_changes
         run: |
           if [ -n "$(git status --porcelain docs/uml/ UML.pdf)" ]; then
@@ -77,8 +98,8 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit and push generated files
-        if: steps.check_changes.outputs.changed == 'true'
+      - name: Commit and push generated files (main only)
+        if: github.ref == 'refs/heads/main' && steps.check_changes.outputs.changed == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

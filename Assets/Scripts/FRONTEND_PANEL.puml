@@ -1,0 +1,124 @@
+@startuml FRONTEND_PANEL
+
+skinparam classAttributeIconSize 0
+skinparam classFontName Courier
+skinparam classFontSize 12
+skinparam classHeaderBackgroundColor #D8E8F0
+skinparam classBorderColor #333333
+skinparam classBackgroundColor #FFFFFF
+skinparam interfaceBackgroundColor #E8F4E8
+skinparam interfaceBorderColor #336633
+skinparam arrowColor #333333
+skinparam arrowThickness 1.5
+
+title FrontEnd 3/3 — UI Panels & Buttons (MachineUI) (Unity)
+
+note as N1
+  <b>Scope</b>: FrontEnd/UI/MachineUI (global namespace)
+  Bridge interfaces appear as stubs here — the full ISubject/IObserver
+  hierarchy is in FRONTEND_VIEW.puml. Target blocks (BeltBlock,
+  TrackBlock) are detailed in FRONTEND_BLOCK.puml
+end note
+
+' ══════════════════════════════════════════════
+' Bridge interface stubs (full hierarchy: FRONTEND_VIEW.puml)
+' ══════════════════════════════════════════════
+
+interface IBlockObserver {
+  +OnBlockChanged(block: IBlockSubject): void
+}
+interface IUIPanelButtonObserver {
+  +OnButtonSelected(button: IUIPanelButtonSubject): void
+}
+interface IUIPanelButtonSubject {
+}
+
+' ══════════════════════════════════════════════
+' UI panels (opened by block selection)
+' ══════════════════════════════════════════════
+
+class UIPanelBase << MonoBehaviour >> {
+  -panel: GameObject <<SerializeField>>
+  -_targetBlock: BlockBase
+  --
+  +TargetBlock: BlockBase <<get, protected set>>
+  --
+  +OpenUI(block: BlockBase): void
+  +CloseUI(): void
+  +SetSelectOj(selectObj: GameObject): void
+  +OnBlockChanged(block: IBlockSubject): void
+  +OnButtonSelected(button: IUIPanelButtonSubject): void
+}
+
+class MachineSelectUI << MonoBehaviour >> {
+  -buttonPrefab: GameObject <<SerializeField>>
+  -buttons: List~UIPanelButtonBase~
+  --
+  +OnButtonSelected(button: IUIPanelButtonSubject): void
+}
+
+class MachineModifyUI << MonoBehaviour >> {
+  -_machineTypeTxt: UIView <<SerializeField>>
+  -_levelTxt: UIView <<SerializeField>>
+  -_levelUpPayTxt: UIView <<SerializeField>>
+  --
+  +OnBlockChanged(block: IBlockSubject): void
+  +OnButtonSelected(button: IUIPanelButtonSubject): void
+}
+
+class TrackModifyUI << MonoBehaviour >> {
+  -_trackLevelTxt: UIView <<SerializeField>>
+  -_trackLevelUpPriceTxt: UIView <<SerializeField>>
+  --
+  +OnBlockChanged(block: IBlockSubject): void
+  +OnButtonSelected(button: IUIPanelButtonSubject): void
+}
+
+UIPanelBase ..|> IBlockObserver
+UIPanelBase ..|> IUIPanelButtonObserver
+UIPanelBase <|-- MachineSelectUI
+UIPanelBase <|-- MachineModifyUI
+UIPanelBase <|-- TrackModifyUI
+
+' stack sibling panels to limit width
+MachineSelectUI -[hidden]- TrackModifyUI
+
+' ══════════════════════════════════════════════
+' Panel buttons
+' ══════════════════════════════════════════════
+
+abstract class UIPanelButtonBase << MonoBehaviour >> {
+  -_observers: List~IObserver~
+  --
+  +OnButtonClick(): void
+}
+
+class MachineSelectButton << MonoBehaviour >> {
+  +MachineType: MachineType <<get, set>>
+  +Initialize(type: MachineType, observer: IUIPanelButtonObserver): void
+}
+
+class MachineModifyButton << MonoBehaviour >>
+class MachineModifyButton_Levelup << MonoBehaviour >>
+class MachineModifyButton_Sell << MonoBehaviour >>
+class TrackModifyButton_LevelUp << MonoBehaviour >>
+
+UIPanelButtonBase ..|> IUIPanelButtonSubject
+UIPanelButtonBase <|-- MachineSelectButton
+UIPanelButtonBase <|-- MachineModifyButton
+UIPanelButtonBase <|-- TrackModifyButton_LevelUp
+MachineModifyButton <|-- MachineModifyButton_Levelup
+MachineModifyButton <|-- MachineModifyButton_Sell
+
+' stack sibling buttons to limit width
+MachineSelectButton -[hidden]- TrackModifyButton_LevelUp
+
+' ══════════════════════════════════════════════
+' Panel -> block interactions (blocks: FRONTEND_BLOCK.puml)
+' ══════════════════════════════════════════════
+
+MachineModifyUI ..> "BeltBlock\n(FRONTEND_BLOCK)" : MachineLevelUp / SellMachine
+MachineSelectUI ..> "BeltBlock\n(FRONTEND_BLOCK)" : CreateMachine
+TrackModifyUI ..> "TrackBlock\n(FRONTEND_BLOCK)" : TrackLevelUp
+
+@enduml

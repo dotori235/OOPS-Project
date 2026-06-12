@@ -3,8 +3,9 @@
 이 문서는 백엔드·프런트엔드 설계 결정과 그 이유, 그리고 두 레이어를 잇는 브리지 구조를 기록한다.
 구현 세부사항(클래스 목록, 메서드 시그니처)은 레이어별 UML을 참고하라:
 
-- 백엔드: `BACKEND.puml` (Assets/Scripts/Backend/)
-- 프런트엔드: `FRONTEND.puml` (Assets/Scripts/FrontEnd/)
+- 백엔드: `BACKEND.puml`
+- 프런트엔드: `FRONTEND_VIEW.puml`(브리지·UI 위젯) / `FRONTEND_BLOCK.puml`(블록·입력·기계
+  데이터) / `FRONTEND_PANEL.puml`(패널·버튼) — 모두 Assets/Scripts/
 
 에이전트는 클래스 생성/수정 시 반드시 **해당 레이어의 puml**도 함께 업데이트해야 한다.
 
@@ -283,8 +284,18 @@ BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManage
 
 ## UML Diagrams
 
-- 백엔드: `BACKEND.puml` → `docs/uml/BACKEND.png`
-- 프런트엔드: `FRONTEND.puml` → `docs/uml/FRONTEND.png`
-- 통합 PDF: 저장소 루트 `UML.pdf` — 두 다이어그램이 페이지로 포함됨
+소스(.puml)는 `Assets/Scripts/`, 생성물(SVG/PNG)은 `docs/uml/`에 있다:
 
-PNG/PDF는 `.puml` 파일 push 시 GitHub Actions가 자동 생성한다 (`.github/workflows/uml.yml`).
+| 다이어그램 | 소스 | 생성물 |
+|---|---|---|
+| Backend | `BACKEND.puml` | `docs/uml/BACKEND.svg` / `.png` |
+| FrontEnd 1/3 — 브리지·UI 위젯 | `FRONTEND_VIEW.puml` | `docs/uml/FRONTEND_VIEW.svg` / `.png` |
+| FrontEnd 2/3 — 블록·입력·기계 데이터 | `FRONTEND_BLOCK.puml` | `docs/uml/FRONTEND_BLOCK.svg` / `.png` |
+| FrontEnd 3/3 — 패널·버튼 | `FRONTEND_PANEL.puml` | `docs/uml/FRONTEND_PANEL.svg` / `.png` |
+
+- 통합 PDF: 저장소 루트 `UML.pdf` — SVG 기반 벡터(확대해도 선명), 다이어그램당 1페이지
+- `.puml` push 시 GitHub Actions(`.github/workflows/uml.yml`)가 자동 생성한다.
+  main에서는 생성물을 커밋하고, 그 외 브랜치에서는 워크플로 아티팩트로 업로드한다
+  (PR 브랜치에 봇 커밋이 쌓이며 생기는 충돌 방지)
+- **다이어그램에는 한글을 넣지 않는다** — CI 러너에 한글 폰트가 없어 깨진다.
+  PlantUML이 에러 다이어그램을 내면 워크플로가 실패하도록 검사한다

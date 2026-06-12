@@ -1,0 +1,176 @@
+@startuml FRONTEND_BLOCK
+
+skinparam classAttributeIconSize 0
+skinparam classFontName Courier
+skinparam classFontSize 12
+skinparam classHeaderBackgroundColor #D8E8F0
+skinparam classBorderColor #333333
+skinparam classBackgroundColor #FFFFFF
+skinparam interfaceBackgroundColor #E8F4E8
+skinparam interfaceBorderColor #336633
+skinparam arrowColor #333333
+skinparam arrowThickness 1.5
+
+title FrontEnd 2/3 — Scene Blocks, Input & Machine Data (Unity)
+
+note as N1
+  <b>Scope</b>: FrontEnd/BeltBlock + InteractEvent + MachineData (global namespace)
+  Bridge interfaces appear as stubs here — the full ISubject/IObserver
+  hierarchy is in FRONTEND_VIEW.puml. Panels: FRONTEND_PANEL.puml
+end note
+
+' ══════════════════════════════════════════════
+' Bridge interface stubs (full hierarchy: FRONTEND_VIEW.puml)
+' ══════════════════════════════════════════════
+
+interface IBlockSubject {
+  +NotifyBlock(): void
+}
+interface ISellBlockSubject {
+  +NotifySellBlock(item: ISellable): void
+}
+interface IBeltTrackLevelObserver {
+  +OnBeltTrackLevelChanged(s: IBeltTrackLevelSubject): void
+}
+
+' ══════════════════════════════════════════════
+' BLOCK system (selectable blocks in the scene)
+' ══════════════════════════════════════════════
+
+abstract class BlockBase << MonoBehaviour >> {
+  #Observers: List~IObserver~ <<get>>
+  --
+  +{abstract} UIType(): BlockUIType
+  +SelectBlock(): void
+  +UnselectBlock(): void
+  +NotifyBlock(): void
+}
+
+class BeltBlock << MonoBehaviour >> {
+  -_machine: Machine
+  --
+  +Machine: Machine <<get, set>>
+  +MachineName: string <<get>>
+  +MachineLevel: float <<get>>
+  +MachineLevelUpPrice: float <<get>>
+  +MachineSellPrice: float <<get>>
+  --
+  +UIType(): BlockUIType
+  +CreateMachine(type: MachineType): bool
+  +SellMachine(): void
+  +MachineLevelUp(): bool
+  -PayMoney(pay: float): bool
+}
+
+class TrackBlock << MonoBehaviour >> {
+  -_beltTrack: BeltTrack
+  --
+  +TrackLevel: int <<get>>
+  +TrackLevelUpPrice: float <<get>>
+  --
+  +UIType(): BlockUIType
+  +TrackLevelUp(): void
+  +PayMoney(pay: float): bool
+}
+
+class SellBlock << MonoBehaviour >> {
+  +UIType(): BlockUIType
+  +NotifySellBlock(item: ISellable): void
+  -OnTriggerEnter(other: Collider): void
+}
+
+class BeltBlockManager << MonoBehaviour >> {
+  -beltBlockPrefab: GameObject <<SerializeField>>
+  -beltBlocks: List~BeltBlock~
+  -beltTrack: BeltTrack
+  --
+  +generateBeltBlock(): void
+  +OnBeltTrackLevelChanged(s: IBeltTrackLevelSubject): void
+}
+
+BlockBase ..|> IBlockSubject
+BlockBase <|-- BeltBlock
+BlockBase <|-- TrackBlock
+BlockBase <|-- SellBlock
+SellBlock ..|> ISellBlockSubject
+BeltBlockManager ..|> IBeltTrackLevelObserver
+BeltBlockManager "1" *-- "0..*" BeltBlock : beltBlocks
+BeltBlock ..> "Machine (Backend)" : Instantiate/LevelUp
+BeltBlock ..> "FactoryStatus (Backend)" : ModifyMoney
+TrackBlock ..> "BeltTrack (Backend)" : LevelUp
+SellBlock ..> "ISellable (Backend)" : detects
+
+' stack siblings to limit width
+TrackBlock -[hidden]- SellBlock
+
+' ══════════════════════════════════════════════
+' Input / selection (InteractEvent)
+' ══════════════════════════════════════════════
+
+enum BlockUIType {
+  Null
+  MachineSelect
+  MachineModify
+  TrackModify
+}
+
+class BlockSelect << MonoBehaviour >> {
+  -selectObj: GameObject <<SerializeField>>
+  -m_UiPanels: List~UIPanelMapping~ <<SerializeField>>
+  -uiDict: Dict~BlockUIType, UIPanelBase~
+  -currentBlock: BlockBase
+  --
+  -HandleSelection(): void
+  -SetCurrentUI(uiType: BlockUIType): void
+  -SelectNewBlock(newBlock: BlockBase): void
+  -DeselectCurrentBlock(): void
+  -CloseAllUI(): void
+}
+
+class CameraMove << MonoBehaviour >> {
+  -speed: float
+  -initPos: Vector3
+}
+
+class UIPanelBase << MonoBehaviour >>
+note right of UIPanelBase : details in FRONTEND_PANEL.puml
+
+BlockSelect ..> BlockBase : raycast pick
+BlockSelect "1" o-- "0..*" UIPanelBase : uiDict
+
+' ══════════════════════════════════════════════
+' MACHINE DATA (ScriptableObject)
+' ══════════════════════════════════════════════
+
+class MachineManager << (S,#FFD700) MonoBehaviour singleton >> {
+  -machineInfoList: MachineInfoList <<SerializeField>>
+  -machineDict: Dict~MachineType, GameObject~
+  --
+  +Instance: MachineManager <<get>> {static}
+  +GetMachine(type: MachineType): GameObject
+}
+
+class MachineInfoList << ScriptableObject >> {
+  -machineInfos: List~MachineInfo~ <<SerializeField>>
+  --
+  +Count: int <<get>>
+  +GetMachineAt(i: int): MachineInfo
+}
+
+class MachineInfo << ScriptableObject >> {
+  -type: MachineType <<SerializeField>>
+  -machine: GameObject <<SerializeField>>
+  --
+  +GetMachineType(): MachineType
+  +GetMachine(): GameObject
+}
+
+MachineManager "1" o-- "1" MachineInfoList
+MachineInfoList "1" o-- "0..*" MachineInfo
+BeltBlock ..> MachineManager : GetMachine(type)
+
+' anchor otherwise-disconnected nodes below the graph
+' instead of letting them widen the layout sideways
+BlockUIType -[hidden]- CameraMove
+
+@enduml
