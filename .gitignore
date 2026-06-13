@@ -37,6 +37,12 @@
 # Visual Studio cache directory
 .vs/
 
+# VS Code workspace settings
+.vscode/
+
+# Local MCP server config (per-developer)
+.mcp.json
+
 # Gradle cache directory
 .gradle/
 
