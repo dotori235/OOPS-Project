@@ -12,6 +12,10 @@ public class BeltBlock : BlockBase
     public float MachineLevel { get => _machine == null ? 0 : _machine.Level; }
     public float MachineLevelUpPrice { get => _machine.Level * Machine.LevelUpPriceCoeff; }
     public float MachineSellPrice { get => (Machine.InstallPrice + (_machine.Level * (_machine.Level - 1) / 2f) * Machine.LevelUpPriceCoeff) / 2; }
+    public float MachineRepairPrice { get => Machine.RepairPrice; }
+    public float MachineHpRatio { get => _machine == null ? 0 : _machine.HpRatio; }
+    public bool MachineCanLevelUp { get => _machine != null && _machine.CanLevelUp(); }
+    public bool MachineCanRepair { get => _machine != null && _machine.CanRepair(); }
 
     public override BlockUIType UIType()
     {
@@ -52,10 +56,27 @@ public class BeltBlock : BlockBase
     }
     public bool MachineLevelUp()
     {
+        // A worn machine must be repaired before leveling up — don't charge for a no-op.
+        if (!_machine.CanLevelUp()) return false;
+
         float pay = MachineLevelUpPrice;
         if (PayMoney(pay))
         {
             _machine.LevelUp();
+            NotifyBlock();
+            return true;
+        }
+        return false;
+    }
+    public bool MachineRepair()
+    {
+        // Don't charge to "repair" a machine that is already at full HP.
+        if (!_machine.CanRepair()) return false;
+
+        float pay = MachineRepairPrice;
+        if (PayMoney(pay))
+        {
+            _machine.Repair();
             NotifyBlock();
             return true;
         }

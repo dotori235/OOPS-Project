@@ -40,7 +40,7 @@ unity -batchmode -quit -projectPath . -buildTarget StandaloneWindows64 -logFile 
 > find Assets/Prefab  -type f -name "*.prefab"
 > ```
 
-<!-- STRUCTURE: 마지막 갱신 2026-06-12 (main, PR #13 머지 직후 기준) -->
+<!-- STRUCTURE: 마지막 갱신 2026-06-12 (feature/machine-hp — 기계 HP·수리 기능 추가 기준) -->
 
 ```
 Assets/Prefab/BeltBlock.prefab
@@ -128,10 +128,12 @@ Assets/Scripts/FrontEnd/UI/RoundUIView_TargetAP.cs
 Assets/Scripts/FrontEnd/UI/RoundUIView_TimeLimit.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyButton.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyButton_Levelup.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyButton_Repair.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyButton_Sell.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_Level.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_LevelUpPrice.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_MachineType.cs
+Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineModifyUIView_RepairPrice.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/MachineSelectButton.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/TrackModifyButton_LevelUp.cs
 Assets/Scripts/FrontEnd/UI/MachineUI/UIContents/TrackModifyUIView_Level.cs
@@ -145,6 +147,7 @@ Assets/Scripts/FrontEnd/UI/UIView/BankruptcyUIView.cs
 Assets/Scripts/FrontEnd/UI/UIView/BrandLevelUIView.cs
 Assets/Scripts/FrontEnd/UI/UIView/BrandPointUIView.cs
 Assets/Scripts/FrontEnd/UI/UIView/ButtonUIView.cs
+Assets/Scripts/FrontEnd/UI/UIView/MachineHpUIView.cs
 Assets/Scripts/FrontEnd/UI/UIView/MoneyUIView.cs
 Assets/Scripts/FrontEnd/UI/UIView/SliderUIView.cs
 Assets/Scripts/FrontEnd/UI/UIView/SliderUpdateArgs.cs

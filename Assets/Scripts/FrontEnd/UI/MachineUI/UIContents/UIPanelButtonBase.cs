@@ -4,11 +4,16 @@ using UnityEngine.UI;
 public abstract class UIPanelButtonBase : MonoBehaviour, IUIPanelButtonSubject
 {
     private List<IObserver> _observers = new List<IObserver>();
+    private Button _button;
     protected virtual void Awake()
     {
-        
-        GetComponent<Button>().onClick.RemoveAllListeners();
-        GetComponent<Button>().onClick.AddListener(OnButtonClick);
+        _button = GetComponent<Button>();
+        _button.onClick.RemoveAllListeners();
+        _button.onClick.AddListener(OnButtonClick);
+    }
+    public void SetInteractable(bool value)
+    {
+        _button.interactable = value;
     }
     public virtual void OnButtonClick()
     {

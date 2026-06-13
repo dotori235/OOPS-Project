@@ -201,18 +201,29 @@ Item "1" *-- "1" Stat : _stats
 
 abstract class Machine << MonoBehaviour >> {
   -_upgradeInterval: float <<SerializeField>>
+  -_maxHp: float <<SerializeField>>
+  -_hpLossRate: float <<SerializeField>>
+  -_minUpgradableHp: float <<SerializeField>>
   -_level: int
   -_cooldown: float
   -_upgradeAmount: float
+  -_hp: float
   -_type: MachineType
   --
   +Level: int <<get, private set>>
   +UpgradeInterval: float <<get, private set>>
   +UpgradeAmount: float <<get, private set>>
+  +Hp: float <<get, private set>>
+  +MaxHp: float <<get, private set>>
+  +HpRatio: float <<get>>
   +InstallPrice: float <<get>> {static}
   +LevelUpPriceCoeff: float <<get>> {static}
+  +RepairPrice: float <<get>> {static}
   --
+  +CanLevelUp(): bool
+  +CanRepair(): bool
   +LevelUp(): void
+  +Repair(): void
   +GetMachineType(): MachineType
   #SetMachineType(type: MachineType): void
   -UpgradeItem(item: Item): void
@@ -224,7 +235,12 @@ abstract class Machine << MonoBehaviour >> {
 note bottom of Machine
   Machining happens only via OnTriggerStay()
   physics contact. Update() only ticks the cooldown.
-  alphaEff coroutine flashes alpha while machining
+  alphaEff coroutine flashes alpha while machining.
+  HP: initialized to _maxHp in Awake (subclasses call
+  base.Awake). LevelUp() multiplies _hp by (1 - _hpLossRate)
+  and is gated by CanLevelUp() (_hp >= _minUpgradableHp);
+  machining is unaffected. Repair() restores _hp to _maxHp,
+  gated by CanRepair() (_hp < _maxHp). Fixed RepairPrice.
 end note
 
 class Grinder << MonoBehaviour >> {

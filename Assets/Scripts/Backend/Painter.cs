@@ -2,8 +2,9 @@ namespace Backend
 {
     public class Painter : Machine
     {
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             SetMachineType(MachineType.Painter);
         }
         public override StatType GetTargetStat()

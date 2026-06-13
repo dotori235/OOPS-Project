@@ -61,6 +61,8 @@ class MachineModifyUI << MonoBehaviour >> {
   -_machineTypeTxt: UIView <<SerializeField>>
   -_levelTxt: UIView <<SerializeField>>
   -_levelUpPayTxt: UIView <<SerializeField>>
+  -_hpGauge: UIView <<SerializeField>>
+  -_repairPayTxt: UIView <<SerializeField>>
   --
   +OnBlockChanged(block: IBlockSubject): void
   +OnButtonSelected(button: IUIPanelButtonSubject): void
@@ -101,6 +103,7 @@ class MachineSelectButton << MonoBehaviour >> {
 class MachineModifyButton << MonoBehaviour >>
 class MachineModifyButton_Levelup << MonoBehaviour >>
 class MachineModifyButton_Sell << MonoBehaviour >>
+class MachineModifyButton_Repair << MonoBehaviour >>
 class TrackModifyButton_LevelUp << MonoBehaviour >>
 
 UIPanelButtonBase ..|> IUIPanelButtonSubject
@@ -109,6 +112,7 @@ UIPanelButtonBase <|-- MachineModifyButton
 UIPanelButtonBase <|-- TrackModifyButton_LevelUp
 MachineModifyButton <|-- MachineModifyButton_Levelup
 MachineModifyButton <|-- MachineModifyButton_Sell
+MachineModifyButton <|-- MachineModifyButton_Repair
 
 ' stack sibling buttons to limit width
 MachineSelectButton -[hidden]- TrackModifyButton_LevelUp
@@ -117,7 +121,7 @@ MachineSelectButton -[hidden]- TrackModifyButton_LevelUp
 ' Panel -> block interactions (blocks: FRONTEND_BLOCK.puml)
 ' ══════════════════════════════════════════════
 
-MachineModifyUI ..> "BeltBlock\n(FRONTEND_BLOCK)" : MachineLevelUp / SellMachine
+MachineModifyUI ..> "BeltBlock\n(FRONTEND_BLOCK)" : MachineLevelUp / SellMachine / MachineRepair
 MachineSelectUI ..> "BeltBlock\n(FRONTEND_BLOCK)" : CreateMachine
 TrackModifyUI ..> "TrackBlock\n(FRONTEND_BLOCK)" : TrackLevelUp
 
