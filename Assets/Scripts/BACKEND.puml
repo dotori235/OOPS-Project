@@ -63,12 +63,6 @@ enum MachineType {
   Painter
 }
 
-enum EventType {
-  None
-  Boom
-  Recession
-}
-
 enum FactoryStatusType {
   Money
   BrandLevel
@@ -96,17 +90,12 @@ class ItemSoldEvent {
   +Stats: Stat <<get>>
 }
 
-class MarketEvent {
-  +EventType: EventType <<get>>
-}
-
 class BankruptcyEvent {
   +BarLevel: float <<get>>
 }
 
 GameEvent <|-- RoundEndEvent
 GameEvent <|-- ItemSoldEvent
-GameEvent <|-- MarketEvent
 GameEvent <|-- BankruptcyEvent
 
 ' ══════════════════════════════════════════════
@@ -437,22 +426,14 @@ RoundManager ..> FactoryStatus : ModifyMoney
 
 class SellManager << (S,#FFD700) MonoBehaviour singleton >> {
   -_instance: SellManager {static}
-  -_apMultiplier: float
-  -_spMultiplier: float
-  -_activeEvent: EventType
   --
   +Instance: SellManager <<get>> {static}
-  +ApMultiplier: float <<get, set>>
-  +SpMultiplier: float <<get, set>>
-  +ActiveEvent: EventType <<get, private set>>
   --
-  +OnEvent(e: GameEvent): void
   +SellItem(item: ISellable): void
   +ApplyFine(item: ISellable, p: float): void
 }
 
-SellManager ..|> IGameEventListener
-SellManager ..> EventBus : Subscribe / Publish(ItemSoldEvent)
+SellManager ..> EventBus : Publish(ItemSoldEvent)
 SellManager ..> FactoryStatus : ModifyMoney / AddBrandPoints
 SellManager ..> ISellable : <<use>> param
 

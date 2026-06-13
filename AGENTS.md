@@ -40,7 +40,7 @@ unity -batchmode -quit -projectPath . -buildTarget StandaloneWindows64 -logFile 
 > find Assets/Prefab  -type f -name "*.prefab"
 > ```
 
-<!-- STRUCTURE: 마지막 갱신 2026-06-13 (기계 HP·수리 Command/Observer 리팩터 + 정리: +Backend/Command.cs, -Backend/Operation.cs) -->
+<!-- STRUCTURE: 마지막 갱신 2026-06-13 (기계 HP·수리 Command/Observer + 품질 정리: +Backend/Command.cs, -Backend/Operation.cs, -Backend/MarketEvent.cs, -Backend/EventType.cs) -->
 
 ```
 Assets/Prefab/BeltBlock.prefab
@@ -70,7 +70,6 @@ Assets/Scripts/Backend/BankruptcyEvent.cs
 Assets/Scripts/Backend/BeltTrack.cs
 Assets/Scripts/Backend/Command.cs
 Assets/Scripts/Backend/EventBus.cs
-Assets/Scripts/Backend/EventType.cs
 Assets/Scripts/Backend/FactoryStatus.cs
 Assets/Scripts/Backend/FactoryStatusType.cs
 Assets/Scripts/Backend/GameEvent.cs
@@ -88,7 +87,6 @@ Assets/Scripts/Backend/ItemSpawner.cs
 Assets/Scripts/Backend/IUpgradable.cs
 Assets/Scripts/Backend/Machine.cs
 Assets/Scripts/Backend/MachineType.cs
-Assets/Scripts/Backend/MarketEvent.cs
 Assets/Scripts/Backend/Painter.cs
 Assets/Scripts/Backend/PausedState.cs
 Assets/Scripts/Backend/PlayingState.cs

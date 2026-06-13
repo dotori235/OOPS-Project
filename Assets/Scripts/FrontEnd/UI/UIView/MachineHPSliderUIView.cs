@@ -6,7 +6,7 @@ public class MachineHPSliderUIView : SliderUIView, IMachineObserver
     protected override void Awake()
     {
         base.Awake();
-        _machine.RegisterObserver(this);
+        if (_machine != null) _machine.RegisterObserver(this);
     }
     public void OnMachineChanged(IMachineSubject machine)
     {

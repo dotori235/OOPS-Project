@@ -4,7 +4,7 @@ using UnityEngine;
 public class BeltBlock : BlockBase
 {
     private Machine _machine;
-    public Machine Machine { get { return _machine; } set { _machine = value; } }
+    public Machine Machine { get { return _machine; } }
     private FactoryStatus _factoryStatus;
     public float MachineSellPrice { get => (Machine.InstallPrice + (_machine.Level * (_machine.Level - 1) / 2f) * Machine.LevelUpPriceCoeff) / 2; }
 
