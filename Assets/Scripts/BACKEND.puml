@@ -209,6 +209,7 @@ abstract class Machine << MonoBehaviour >> {
   -_upgradeAmount: float
   -_hp: float
   -_type: MachineType
+  -_observers: List~IObserver~
   --
   +Level: int <<get, private set>>
   +UpgradeInterval: float <<get, private set>>
@@ -216,6 +217,7 @@ abstract class Machine << MonoBehaviour >> {
   +Hp: float <<get, private set>>
   +MaxHp: float <<get, private set>>
   +HpRatio: float <<get>>
+  +LevelUpPrice: float <<get>>
   +InstallPrice: float <<get>> {static}
   +LevelUpPriceCoeff: float <<get>> {static}
   +RepairPrice: float <<get>> {static}
@@ -228,19 +230,24 @@ abstract class Machine << MonoBehaviour >> {
   #SetMachineType(type: MachineType): void
   -UpgradeItem(item: Item): void
   -OnTriggerStay(other: Collider): void
+  +RegisterObserver(o: IObserver): void
+  +UnregisterObserver(o: IObserver): void
+  +NotifyObservers(): void
+  +NotifyMachine(): void
   +{abstract} GetTargetStat(): StatType
   +{abstract} CanCauseDefect(): bool
 }
 
 note bottom of Machine
-  Machining happens only via OnTriggerStay()
-  physics contact. Update() only ticks the cooldown.
-  alphaEff coroutine flashes alpha while machining.
-  HP: initialized to _maxHp in Awake (subclasses call
-  base.Awake). LevelUp() multiplies _hp by (1 - _hpLossRate)
-  and is gated by CanLevelUp() (_hp >= _minUpgradableHp);
-  machining is unaffected. Repair() restores _hp to _maxHp,
-  gated by CanRepair() (_hp < _maxHp). Fixed RepairPrice.
+  Implements IMachineSubject (defined in FrontEnd/ObserverPattern,
+  FRONTEND_VIEW.puml); NotifyMachine() pushes OnMachineChanged to
+  observers (MachineModifyUI) on wear / level-up / repair.
+  HP: initialized to _maxHp in Awake (subclasses call base.Awake).
+  Each item processed in UpgradeItem() wears HP by
+  _maxHp * _hpLossRate * (5 - _level) (higher level wears less);
+  OnTriggerStay machining runs only while _hp > 0. LevelUp() leaves
+  HP alone and is gated by CanLevelUp() (_hp >= _minUpgradableHp).
+  Repair() restores _hp to _maxHp, gated by CanRepair() (_hp < _maxHp).
 end note
 
 class Grinder << MonoBehaviour >> {
@@ -265,6 +272,35 @@ Machine <|-- Grinder
 Machine <|-- Welder
 Machine <|-- Painter
 Machine ..> Item : upgrades
+
+' ══════════════════════════════════════════════
+' MACHINE COMMANDS  (Pure C# — Command.cs)
+' ══════════════════════════════════════════════
+
+interface IMachineCommand {
+  +CommandName: string <<get>>
+  +GetPrice(machine: Machine): float
+  +CanExecute(machine: Machine): bool
+  +Execute(machine: Machine): void
+}
+
+class LevelUpCommand {
+  +CommandName: string <<get>>
+}
+class RepairCommand {
+  +CommandName: string <<get>>
+}
+
+IMachineCommand <|.. LevelUpCommand
+IMachineCommand <|.. RepairCommand
+IMachineCommand ..> Machine : GetPrice / CanExecute / Execute
+
+note bottom of IMachineCommand
+  Machine actions (level-up, repair) as commands.
+  BeltBlock.ExecuteCommand runs the common path
+  (CanExecute -> PayMoney(GetPrice) -> Execute);
+  MachineModifyUI holds one command per button.
+end note
 
 ' ══════════════════════════════════════════════
 ' BELT TRACK  (MonoBehaviour)

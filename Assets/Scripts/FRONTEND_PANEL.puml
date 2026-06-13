@@ -32,6 +32,9 @@ interface IUIPanelButtonObserver {
 }
 interface IUIPanelButtonSubject {
 }
+interface IMachineObserver {
+  +OnMachineChanged(machine: IMachineSubject): void
+}
 
 ' ══════════════════════════════════════════════
 ' UI panels (opened by block selection)
@@ -63,10 +66,20 @@ class MachineModifyUI << MonoBehaviour >> {
   -_levelUpPayTxt: UIView <<SerializeField>>
   -_hpGauge: UIView <<SerializeField>>
   -_repairPayTxt: UIView <<SerializeField>>
+  -_levelUpCmd: IMachineCommand
+  -_repairCmd: IMachineCommand
   --
-  +OnBlockChanged(block: IBlockSubject): void
+  +OpenUI(block: BlockBase): void
+  +CloseUI(): void
+  +OnMachineChanged(machine: IMachineSubject): void
   +OnButtonSelected(button: IUIPanelButtonSubject): void
 }
+note bottom of MachineModifyUI
+  Implements IMachineObserver: OpenUI subscribes to the selected
+  Machine, CloseUI unsubscribes. OnMachineChanged refreshes type/
+  level/HP gauge and, per command, the price text + button
+  interactable. Buttons dispatch BeltBlock.ExecuteCommand(cmd).
+end note
 
 class TrackModifyUI << MonoBehaviour >> {
   -_trackLevelTxt: UIView <<SerializeField>>
@@ -81,6 +94,7 @@ UIPanelBase ..|> IUIPanelButtonObserver
 UIPanelBase <|-- MachineSelectUI
 UIPanelBase <|-- MachineModifyUI
 UIPanelBase <|-- TrackModifyUI
+MachineModifyUI ..|> IMachineObserver
 
 ' stack sibling panels to limit width
 MachineSelectUI -[hidden]- TrackModifyUI
@@ -121,7 +135,9 @@ MachineSelectButton -[hidden]- TrackModifyButton_LevelUp
 ' Panel -> block interactions (blocks: FRONTEND_BLOCK.puml)
 ' ══════════════════════════════════════════════
 
-MachineModifyUI ..> "BeltBlock\n(FRONTEND_BLOCK)" : MachineLevelUp / SellMachine / MachineRepair
+MachineModifyUI ..> "BeltBlock\n(FRONTEND_BLOCK)" : ExecuteCommand / SellMachine
+MachineModifyUI ..> "Machine\n(BACKEND)" : Register/UnregisterObserver
+MachineModifyUI ..> "IMachineCommand\n(BACKEND)" : holds LevelUp/Repair command
 MachineSelectUI ..> "BeltBlock\n(FRONTEND_BLOCK)" : CreateMachine
 TrackModifyUI ..> "TrackBlock\n(FRONTEND_BLOCK)" : TrackLevelUp
 

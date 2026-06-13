@@ -52,26 +52,21 @@ class BeltBlock << MonoBehaviour >> {
   +Machine: Machine <<get, set>>
   +MachineName: string <<get>>
   +MachineLevel: float <<get>>
-  +MachineLevelUpPrice: float <<get>>
   +MachineSellPrice: float <<get>>
-  +MachineRepairPrice: float <<get>>
-  +MachineHpRatio: float <<get>>
-  +MachineCanLevelUp: bool <<get>>
-  +MachineCanRepair: bool <<get>>
   --
   +UIType(): BlockUIType
   +CreateMachine(type: MachineType): bool
   +SellMachine(): void
-  +MachineLevelUp(): bool
-  +MachineRepair(): bool
+  +ExecuteCommand(command: IMachineCommand): bool
   -PayMoney(pay: float): bool
 }
 
 note bottom of BeltBlock
-  MachineLevelUp() pre-checks CanLevelUp() and MachineRepair()
-  pre-checks CanRepair() before paying (no charge for a no-op).
-  MachineModifyUI toggles the Level Up / Repair button interactable
-  from MachineCanLevelUp / MachineCanRepair.
+  ExecuteCommand() is the common machine-action path: checks
+  command.CanExecute, pays command.GetPrice via PayMoney, then
+  command.Execute (see IMachineCommand in BACKEND.puml). The old
+  MachineLevelUp()/MachineRepair() are commented out; price/HP/
+  can-* getters are now read off Machine directly by the panel.
 end note
 
 class TrackBlock << MonoBehaviour >> {
@@ -107,7 +102,8 @@ BlockBase <|-- SellBlock
 SellBlock ..|> ISellBlockSubject
 BeltBlockManager ..|> IBeltTrackLevelObserver
 BeltBlockManager "1" *-- "0..*" BeltBlock : beltBlocks
-BeltBlock ..> "Machine (Backend)" : Instantiate/LevelUp/Repair
+BeltBlock ..> "Machine (Backend)" : Instantiate
+BeltBlock ..> "IMachineCommand (Backend)" : ExecuteCommand
 BeltBlock ..> "FactoryStatus (Backend)" : ModifyMoney
 TrackBlock ..> "BeltTrack (Backend)" : LevelUp
 SellBlock ..> "ISellable (Backend)" : detects

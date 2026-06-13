@@ -163,41 +163,53 @@ BeltBlock + MachineManager + 패널 UI가 대체 완료한 죽은 경로라 전�
 `_itemPositions`, 주석 처리된 끝 도달 판매 로직(판매는 SellBlock 트리거 담당),
 디버그 `Input.GetKeyDown(P)`, `MachineSpaces` 프로퍼티와 중복인 `GetMachineSpaces()`.
 
-### 11. 기계 HP 및 수리
+### 11. 기계 HP·수리 및 실시간 상태 통지
 
-**결정**: `Machine`에 내구도(HP) 개념을 도입한다. HP는 최대 `_maxHp`(기본 100, 100% 기준)에서
-시작하고, `LevelUp()` 1회마다 **비율**로 감소한다(`_hp *= 1 - _hpLossRate`, 기본 0.2 = 20%).
-HP가 `_minUpgradableHp`(기본 30) 미만이면 `CanLevelUp()`이 false가 되어 더 이상 업그레이드할 수
-없다 — 단, **가공(`OnTriggerStay`)은 HP와 무관하게 계속된다**. `Repair()`는 HP를 `_maxHp`로
-100% 복구한다(이미 만피면 `CanRepair()`가 false라 no-op). 수리 비용은 고정값 `RepairPrice`
-(static, 기본 150)로 노출한다. `_hp`는 인스턴스화 직후 같은 프레임에 UI가 상태를 조회해도 0으로
-보이지 않도록 `Start`가 아닌 `Awake`에서 `_maxHp`로 초기화한다(서브클래스는 `base.Awake()` 호출).
+**결정**: `Machine`에 내구도(HP)를 둔다. HP는 `_maxHp`(기본 100)에서 시작하고,
+**아이템을 1건 가공할 때마다**(`UpgradeItem`) `_hp -= _maxHp × _hpLossRate × (5 − _level)`만큼
+닳는다(`_hpLossRate` 기본 0.01). 레벨이 높을수록 가공당 마모가 작다. `_hp <= 0`이면
+`OnTriggerStay`의 가공이 멈춘다(고장). `_hp < _minUpgradableHp`(기본 30)이면 `CanLevelUp()`이
+false가 되어 업그레이드가 막힌다. `Repair()`는 `CanRepair()`(=`_hp < _maxHp`)일 때만 HP를
+`_maxHp`로 복구하고, 비용은 고정값 `RepairPrice`(static, 기본 50). `LevelUp()`은 레벨·강화량·
+간격만 바꾸고 HP는 건드리지 않는다. `_hp`는 `Awake`에서 `_maxHp`로 초기화한다(서브클래스는
+`base.Awake()` 호출 — 같은 프레임 조회에도 0이 안 보이도록).
 
-**이유**: 무한 업그레이드를 막고 "업그레이드 ↔ 수리"의 자원 순환을 만들기 위함. 비율 감소를
-택한 이유는 고정 감소와 달리 HP가 0에 점근해 완전히 망가지지 않으면서도, 횟수가 쌓일수록
-한계가 분명해지기 때문이다(20% 기준 100→80→64→51→41→33→26에서 차단). 가공을 막지 않고
-업그레이드만 차단하는 쪽을 택해, 수리를 미뤄도 생산은 유지되되 성장은 멈추는 트레이드오프를
-플레이어에게 부여한다.
+**이유**: HP를 "가공량"에 연동하면 많이 돌린 기계일수록 닳는 사용량 기반 내구도가 된다.
+레벨이 오를수록 마모가 줄어 고레벨 기계의 수리 빈도가 낮아지는 보상 곡선을 준다. HP 0에서
+가공이 멈추므로 수리를 미루면 생산이 끊긴다 — 수리 동기를 분명히 하기 위한 설계
+(초기안의 "가공은 HP와 무관하게 계속"에서 변경됨).
 
-**경계(레이어 패턴 준수)**: 결제는 백엔드가 하지 않는다. 기존 `LevelUp`/`InstallPrice` 패턴과
-동일하게 — 백엔드 `Machine`은 상태(`Hp`/`HpRatio`/`CanLevelUp`)와 가격(`RepairPrice`)만
-노출하고, 실제 돈 차감(`FactoryStatus.ModifyMoney`)·버튼·게이지는 FrontEnd가 담당한다.
-`LevelUp()` 내부에도 `CanLevelUp()` 방어 가드를 두어, FrontEnd가 체크를 누락해도 닳은 기계가
-잘못 강화되지 않도록 한다.
+**실시간 통지(Machine Observer)**: `Machine`이 `IMachineSubject`를 구현해, 마모·레벨업·수리로
+상태가 바뀔 때마다 `NotifyMachine()`으로 구독 중인 `IMachineObserver`(현재 `MachineModifyUI`)에
+`OnMachineChanged(this)`를 푸시한다. 패널이 열려 있으면 HP 게이지·레벨·버튼 활성 상태가
+가공 중에도 실시간 갱신된다. `RegisterObserver`는 등록 즉시 1회 통지해 초기 표시를 채운다.
+패널은 `OpenUI`에서 대상 기계를 구독하고 `CloseUI`에서 구독 해제한다.
 
-**FrontEnd 연결(구현 완료)**:
-- `BeltBlock`: `MachineLevelUp()`은 결제 **전** `CanLevelUp()`, `MachineRepair()`는 결제 **전**
-  `CanRepair()`를 확인(닳지 않은/만피 기계에 헛돈 차감 방지). `MachineHpRatio`/`MachineRepairPrice`/
-  `MachineCanLevelUp`/`MachineCanRepair` 노출.
-- `MachineModifyUI`는 `OnBlockChanged`에서 `MachineCanLevelUp`/`MachineCanRepair`로 Level Up·Repair
-  버튼의 `interactable`을 토글해, 불가 상태를 회색 버튼으로 피드백한다(`UIPanelButtonBase.SetInteractable`).
-- `MachineModifyButton_Repair`(── `MachineModifyButton` 파생), `MachineHpUIView`(── `SliderUIView`
-  파생, `HpRatio`를 0~1 게이지로 표시), `MachineModifyUIView_RepairPrice`(── `TextUIView` 파생,
-  접두사 "Repair Price: ") 신설.
-- `MachineModifyUI`: `_hpGauge`/`_repairPayTxt`/`repairBtn` 직렬화 필드 추가, 옵저버 구독·
-  `OnBlockChanged` 갱신(HP 게이지 + 수리비 텍스트)·`OnButtonSelected` 분기 와이어링.
-- 씬(`FrontEnd.unity`): MachineModify 패널(VerticalLayoutGroup)에 Repair 버튼·HP 슬라이더·수리비
-  텍스트(버튼 바로 위) 배치 후 레퍼런스 연결.
+**경계(레이어 패턴 준수)**: 백엔드 `Machine`은 상태(`Hp`/`HpRatio`/`Level`/`CanLevelUp`/
+`CanRepair`)와 가격(`LevelUpPrice`/`RepairPrice`)만 노출하고, 실제 결제·버튼·게이지는 FrontEnd가
+담당한다. 액션 실행은 아래 Command 패턴(#12)으로 일원화한다.
+
+### 12. 기계 액션의 Command 패턴
+
+**결정**: 기계에 대한 행위(레벨업·수리)를 `IMachineCommand`
+(`CommandName`, `GetPrice(machine)`, `CanExecute(machine)`, `Execute(machine)`)로 추상화하고
+`LevelUpCommand`/`RepairCommand`로 구현한다(`Backend/Command.cs`, Pure C#). 공통 실행 경로는
+`BeltBlock.ExecuteCommand(IMachineCommand)` — `_machine`·`command.CanExecute` 확인 →
+`command.GetPrice`만큼 `PayMoney` → `command.Execute`. `MachineModifyUI`는 버튼별 커맨드 객체
+(`_levelUpCmd`/`_repairCmd`)를 들고, 클릭 시 `ExecuteCommand`에 넘기며, `OnMachineChanged`에서
+`command.GetPrice`로 가격 텍스트를, `command.CanExecute`로 버튼 `interactable`을 갱신한다
+(`UIPanelButtonBase.SetInteractable`).
+
+**이유**: 기존에는 행위마다 `BeltBlock`에 `MachineLevelUp()`/`MachineRepair()` 같은 전용 메서드와
+결제 코드가 중복됐다. Command로 빼면 "가격·실행 가능 여부·실행"이 한 객체에 모이고, 새 행위
+추가가 `IMachineCommand` 구현 + 버튼 배선으로 끝난다(OCP). 가격 계산식(`LevelUpPrice`는
+`Machine`이, `RepairPrice`는 static)도 커맨드가 한곳에서 참조한다.
+
+**UI 위젯·씬**: `MachineModifyButton_Repair`(── `MachineModifyButton`), `MachineHpUIView`
+(── `SliderUIView`, `HpRatio`를 0~1 게이지로 표시), `MachineModifyUIView_RepairPrice`
+(── `TextUIView`, 접두사 "Repair Price: ") 신설. MachineModify 패널(VerticalLayoutGroup)에
+HP 슬라이더·수리비 텍스트(Repair 버튼 바로 위)·Repair 버튼을 배치하고 레퍼런스를 연결했다
+(`Assets/Scenes/FrontEnd.unity`).
 
 ---
 
@@ -207,7 +219,7 @@ HP가 `_minUpgradableHp`(기본 30) 미만이면 `CanLevelUp()`이 false가 되�
 
 | 영역 | 클래스 | 책임 |
 |---|---|---|
-| `ObserverPattern/` | `ISubject`/`IObserver` + 파생 6쌍 | 레이어 간·UI 내부 통지 인터페이스 정의 |
+| `ObserverPattern/` | `ISubject`/`IObserver` + 파생 쌍들(FactoryStatus·Round·BeltTrackLevel·Block·SellBlock·UIPanelButton·GameState·**Machine**) | 레이어 간·UI 내부 통지 인터페이스 정의 |
 | `UI/UIView/` | `UIView` + Text/Slider/Button 파생(`TimeScaleTextUIView` 포함), `UIUpdateArgs` 계열 | `UIUpdateArgs`를 받아 개별 위젯(TMP 텍스트, 슬라이더) 갱신 |
 | `UI/` | `FactoryStatusUI`, `RoundUI`, `GameStateUI` | 백엔드 Subject 구독, 받은 값을 UIView들로 분배. `GameStateUI`는 GameManager 상태/배속 구독 + 버튼 입력 중계 |
 | `UI/MachineUI/UIPanel/` | `UIPanelBase` 파생(MachineSelectUI, MachineModifyUI, TrackModifyUI) | 블록 선택 시 열리는 패널. 블록 상태 표시 + 버튼 입력 처리 |
@@ -268,12 +280,15 @@ Awake에서 설정한다.
 | `RoundManager : IRoundSubject` (백엔드) | `RoundUI : IRoundObserver` | `RoundParameters` (라운드 번호, 남은 시간, 목표/현재 AP) |
 | `BeltTrack : IBeltTrackLevelSubject` (백엔드) | `ItemSpawner` (백엔드), `BeltBlockManager` (FrontEnd) | 벨트 레벨업 통지 → 스폰 강화 / 블록 추가 |
 | `SellBlock : ISellBlockSubject` (FrontEnd) | `BeltTrack : ISellBlockObserver` (백엔드) | 판매 지점 도달 아이템 (OnTriggerEnter 감지) |
-| `BlockBase : IBlockSubject` (FrontEnd) | `UIPanelBase : IBlockObserver` (FrontEnd) | 블록 상태 변경 → 패널 텍스트 갱신 |
+| `BlockBase : IBlockSubject` (FrontEnd) | `UIPanelBase : IBlockObserver` (FrontEnd) | 블록 상태 변경 → 패널 텍스트 갱신 (MachineSelectUI/TrackModifyUI) |
 | `UIPanelButtonBase : IUIPanelButtonSubject` (FrontEnd) | `UIPanelBase : IUIPanelButtonObserver` (FrontEnd) | 버튼 클릭 |
 | `GameManager : IGameStateSubject` (백엔드) | `GameStateUI : IGameStateObserver` (FrontEnd) | 게임 상태 전이(현재 `IGameState`) → 일시정지/재개 버튼 라벨 등 갱신 |
+| `Machine : IMachineSubject` (백엔드) | `MachineModifyUI : IMachineObserver` (FrontEnd) | 기계 상태 변경(가공 HP 마모·레벨업·수리) → HP 게이지/레벨/가격/버튼 활성 실시간 갱신 |
 
 **규칙**: Observer는 `Start()`에서 `RegisterObserver`, `OnDestroy()`에서
-`UnregisterObserver`를 반드시 호출할 것.
+`UnregisterObserver`를 호출한다. 단, 구독 대상이 동적으로 정해지는 경우(예: `MachineModifyUI` ↔
+선택된 `Machine`)는 `OpenUI`/`CloseUI`에서 구독/해제하고, `Machine.RegisterObserver`는 등록 즉시
+1회 통지해 초기 상태를 채운다.
 
 ### Communication Flow
 
@@ -281,6 +296,7 @@ Awake에서 설정한다.
 ItemSpawner ──(item 프리팹 Instantiate + AddItem)──► BeltTrack
                                                         │ Update()마다 아이템 이동
                                                    Machine들 (OnTriggerStay() 충돌 가공)
+                                                        │ 가공 1건마다 HP 마모(HP 0이면 정지)
                                                         ▼
                                                     Item 강화 (불량 발생 가능)
 
@@ -295,10 +311,12 @@ FactoryStatus ──(IFactoryStatusSubject)──► FactoryStatusUI ──► U
 RoundManager  ──(IRoundSubject)─────────► RoundUI ──► RoundUIView들
 BeltTrack     ──(IBeltTrackLevelSubject)─► ItemSpawner / BeltBlockManager
 GameManager   ──(IGameStateSubject)──────► GameStateUI ──► pause/resume 버튼 라벨 등
+Machine       ──(IMachineSubject, 가공/레벨업/수리 시)─► MachineModifyUI ──► HP 게이지/레벨/가격/버튼
 
 [입력] BlockSelect ──레이캐스트──► BlockBase.UIType() ──► UIPanelBase.OpenUI()
        (빈 공간 클릭 시 CloseAllUI)
        패널 버튼 클릭 ──(IUIPanelButtonSubject)──► 패널 ──► 블록 메서드 호출
+       MachineModify 버튼 ──► BeltBlock.ExecuteCommand(LevelUp/Repair Command)
        GameStateUI 버튼/슬라이더 ──► GameManager.PauseResume / ResetGame / SetTimeScale
 ```
 
@@ -316,7 +334,8 @@ GameManager   ──(IGameStateSubject)──────► GameStateUI ──�
 | `FactoryStatus` | 전역 상태 읽기/쓰기 + 변경 통지 + 파산바 자연 가감 | 전역 상태 항목 추가/제거 시 |
 | `EventBus` | 이벤트 publish/subscribe | 이벤트 시스템 교체 시 |
 | `Item` 계열 | 스탯 보유/강화/가격 계산 + 자체 시각 표현 | 아이템 스탯·불량 규칙 변경 시 |
-| `Machine` 계열 | 근접 아이템 스탯 강화 (Grinder=AP·불량가능, Welder=DU, Painter=SP·불량가능) + 내구도(HP) 관리: 업그레이드 시 비율 차감, 임계 미만이면 업그레이드 차단, 수리로 100% 복구 | 강화 규칙·내구도/수리 규칙 변경 시 |
+| `Machine` 계열 | 근접 아이템 스탯 강화 (Grinder=AP·불량가능, Welder=DU, Painter=SP·불량가능) + 내구도(HP) 관리: 가공 1건마다 마모(레벨 높을수록 적게)·HP 0이면 정지·임계 미만이면 업그레이드 차단·수리로 복구 + 상태 변경을 IMachineSubject로 통지 | 강화·내구도/수리 규칙·통지 변경 시 |
+| `IMachineCommand` 계열 (`LevelUpCommand`/`RepairCommand`) | 기계 액션의 가격·실행가능여부·실행을 한 객체로 캡슐화 | 기계 액션 추가/규칙 변경 시 |
 
 ---
 
@@ -338,7 +357,16 @@ GameManager   ──(IGameStateSubject)──────► GameStateUI ──�
 3. **`Operation` enum 죽은 코드**: PR #13에서 유일한 사용처 `FactoryStatus.SetValue`가
    제거되면서 `Operation`(`Operation.cs`)은 호출처가 없는 죽은 코드가 됐다. 삭제 후보지만
    파일/타입 제거이므로 별도 정리 작업에서 처리할 것
-> 1파일 1클래스 위반(Operation/UIUpdateArgs 계열/RoundParameters/BlockUIType 동거)과
+4. **`BeltBlock` 죽은 코드/미사용 게터**: Command 패턴 도입(#12) 후 `MachineLevelUp()`/
+   `MachineRepair()`는 주석 처리된 채 남아 있고, 패널이 `Machine`을 직접 구독·`IMachineCommand`로
+   가격을 얻게 되면서 `MachineLevelUpPrice`/`MachineHpRatio`/`MachineCanLevelUp`/`MachineCanRepair`/
+   `MachineRepairPrice` 게터는 호출처가 없다. 정리 시 함께 삭제 검토(`MachineSellPrice`는
+   `SellMachine`에서 여전히 사용).
+5. **가공 마모식의 레벨 의존**: `UpgradeItem`의 `_hp -= _maxHp × _hpLossRate × (5 − _level)`는
+   `_level >= 5`에서 마모가 0 또는 음수(HP 증가)가 된다. 의도된 상한(레벨 5에서 무마모)인지,
+   `Mathf.Max(0, …)` 클램프가 필요한지 게임플레이 튜닝 시 확인할 것.
+> 1파일 1클래스 위반(Operation/UIUpdateArgs 계열/RoundParameters/BlockUIType,
+> `Command.cs`의 IMachineCommand+LevelUpCommand+RepairCommand 동거)과
 > 불필요/위험 using(`UnityEditor.UIElements`, NUnit, Newtonsoft 등)은
 > refactor/oop-solid Phase 0에서, `GameManager.Awake()`의 `FindAnyObjectByType` 검색은
 > Phase 2(_managers 삭제)에서 해소됨. `MachineModifyButton_Sell.cs` 파일명 오타도

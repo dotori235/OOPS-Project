@@ -74,6 +74,12 @@ package "ObserverPattern" {
   interface IGameStateObserver {
     +OnGameStateChanged(state: IGameState): void
   }
+  interface IMachineSubject {
+    +NotifyMachine(): void
+  }
+  interface IMachineObserver {
+    +OnMachineChanged(machine: IMachineSubject): void
+  }
 
   ISubject  <|-- IFactoryStatusSubject
   ISubject  <|-- IRoundSubject
@@ -82,6 +88,7 @@ package "ObserverPattern" {
   ISubject  <|-- ISellBlockSubject
   ISubject  <|-- IUIPanelButtonSubject
   ISubject  <|-- IGameStateSubject
+  ISubject  <|-- IMachineSubject
   IObserver <|-- IFactoryStatusObserver
   IObserver <|-- IRoundObserver
   IObserver <|-- IBeltTrackLevelObserver
@@ -89,6 +96,7 @@ package "ObserverPattern" {
   IObserver <|-- ISellBlockObserver
   IObserver <|-- IUIPanelButtonObserver
   IObserver <|-- IGameStateObserver
+  IObserver <|-- IMachineObserver
 
   ' stack the 12 derived interfaces into columns of three
   ' instead of one very wide rank

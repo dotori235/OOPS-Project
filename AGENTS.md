@@ -40,7 +40,7 @@ unity -batchmode -quit -projectPath . -buildTarget StandaloneWindows64 -logFile 
 > find Assets/Prefab  -type f -name "*.prefab"
 > ```
 
-<!-- STRUCTURE: 마지막 갱신 2026-06-12 (feature/machine-hp — 기계 HP·수리 기능 추가 기준) -->
+<!-- STRUCTURE: 마지막 갱신 2026-06-13 (기계 HP·수리 Command/Observer 리팩터 반영, +Backend/Command.cs) -->
 
 ```
 Assets/Prefab/BeltBlock.prefab
@@ -68,6 +68,7 @@ Assets/Scripts/DESIGN.md
 
 Assets/Scripts/Backend/BankruptcyEvent.cs
 Assets/Scripts/Backend/BeltTrack.cs
+Assets/Scripts/Backend/Command.cs
 Assets/Scripts/Backend/EventBus.cs
 Assets/Scripts/Backend/EventType.cs
 Assets/Scripts/Backend/FactoryStatus.cs
