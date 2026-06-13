@@ -38,3 +38,7 @@ public interface IGameStateObserver : IObserver
 {
     public void OnGameStateChanged(IGameState state);
 }
+public interface IMachineObserver : IObserver
+{
+    public void OnMachineChanged(IMachineSubject machine);
+}
