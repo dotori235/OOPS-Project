@@ -9,6 +9,7 @@ namespace Backend
         [SerializeField] private float _maxHp = 100f;
         [SerializeField] private float _hpLossRate = 0.01f;
         [SerializeField] private float _minUpgradableHp = 30f;
+        [SerializeField] private int _wearFreeLevel = 5;
         private int _level = 1;
         private float _cooldown = 0f;
         private float _upgradeAmount = 1f;
@@ -54,8 +55,7 @@ namespace Backend
         }
         private void UpgradeItem(Item item)
         {
-            _hp -= _maxHp*(_hpLossRate*(5-_level));
-            NotifyMachine();
+            ApplyWear();
             StartCoroutine(alphaEff());
             StatType stat = GetTargetStat();
             item.Upgrade(stat, _upgradeAmount);
@@ -70,6 +70,16 @@ namespace Backend
                     item.MakeDefective();
                 }
             }
+        }
+
+        // Each processed item wears HP down, less so at higher levels;
+        // no wear at/after _wearFreeLevel, and HP never drops below 0.
+        private void ApplyWear()
+        {
+            int wearSteps = Mathf.Max(0, _wearFreeLevel - _level);
+            if (wearSteps == 0) return;
+            _hp = Mathf.Max(0f, _hp - _maxHp * _hpLossRate * wearSteps);
+            NotifyMachine();
         }
 
         public bool CanLevelUp()

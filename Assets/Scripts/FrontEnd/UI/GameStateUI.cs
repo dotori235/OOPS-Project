@@ -1,5 +1,4 @@
 using Backend;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameStateUI : MonoBehaviour, IGameStateObserver

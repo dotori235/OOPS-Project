@@ -8,7 +8,7 @@ namespace Backend
         {
             Time.timeScale = 0f;
             Debug.Log("[GameStateMachine] Game Over! Bankruptcy threshold reached.");
-            DebugLog.Instance.Print("[GameStateMachine] Game Over! Bankruptcy threshold reached.");
+            DebugLog.Instance?.Print("[GameStateMachine] Game Over! Bankruptcy threshold reached.");
         }
 
         public void Update() { }

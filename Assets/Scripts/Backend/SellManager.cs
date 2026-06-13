@@ -2,48 +2,13 @@ using UnityEngine;
 
 namespace Backend
 {
-    public class SellManager : MonoBehaviour, IGameEventListener
+    public class SellManager : MonoBehaviour
     {
-        private float _apMultiplier = 1.5f;
-        private float _spMultiplier = 1.0f;
-        private EventType _activeEvent = EventType.None;
         private static SellManager _instance;
         public static SellManager Instance { get => _instance; }
-        public float ApMultiplier { get => _apMultiplier; set => _apMultiplier = value; }
-        public float SpMultiplier { get => _spMultiplier; set => _spMultiplier = value; }
-        public EventType ActiveEvent { get => _activeEvent; private set => _activeEvent = value; }
         private void Awake()
         {
             if(_instance== null)_instance = this;
-        }
-        private void Start()
-        {
-            EventBus.GetInstance().Subscribe(this);
-        }
-
-        private void OnDestroy()
-        {
-            EventBus.GetInstance().Unsubscribe(this);
-        }
-
-        public void OnEvent(GameEvent e)
-        {
-            if (e is MarketEvent marketEvent)
-            {
-                _activeEvent = marketEvent.EventType;
-                if (_activeEvent == EventType.Boom)
-                {
-                    _spMultiplier = 2.0f;
-                }
-                else if (_activeEvent == EventType.Recession)
-                {
-                    _spMultiplier = 0.5f;
-                }
-                else
-                {
-                    _spMultiplier = 1.0f;
-                }
-            }
         }
 
         public void SellItem(ISellable item)

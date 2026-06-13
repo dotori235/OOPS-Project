@@ -120,12 +120,11 @@ namespace Backend
 
         public void UpdateBankruptcyBar(float delta)
         {
-            
             BankruptcyBar += delta;
-            NotifyFactoryStatus(FactoryStatusType.BankruptcyBar, new UIUpdateArgs(BankruptcyBar));
-        
             if (BankruptcyBar < 0f) BankruptcyBar = 0f;
             if (BankruptcyBar > 1f) BankruptcyBar = 1f;
+
+            NotifyFactoryStatus(FactoryStatusType.BankruptcyBar, new UIUpdateArgs(BankruptcyBar));
 
             if (IsGameOver() && !_bankruptcyNotified)
             {
