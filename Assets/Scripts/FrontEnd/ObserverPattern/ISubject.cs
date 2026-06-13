@@ -40,3 +40,8 @@ public interface IGameStateSubject : ISubject
 {
     public void NotifyGameState();
 }
+public interface IMachineSubject : ISubject
+{
+    public void NotifyMachine();
+}
+

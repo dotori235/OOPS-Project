@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public class UIPanelBase : MonoBehaviour, IBlockObserver, IUIPanelButtonObserver
+public class UIPanelBase : MonoBehaviour, IUIPanelButtonObserver
 {
     [SerializeField] private GameObject panel;
     private BlockBase _targetBlock;
@@ -13,18 +13,12 @@ public class UIPanelBase : MonoBehaviour, IBlockObserver, IUIPanelButtonObserver
     public virtual void OpenUI(BlockBase block)
     {
         _targetBlock = block;
-        _targetBlock?.RegisterObserver(this);
         selectObj.SetActive(true);
         selectObj.transform.position = _targetBlock.transform.position;
         panel.SetActive(true);
     }
     public virtual void CloseUI()
     {
-        if(_targetBlock!=null)
-        {
-            _targetBlock?.UnregisterObserver(this);
-
-        }
 
         _targetBlock = null;
         panel.SetActive(false);
@@ -39,10 +33,7 @@ public class UIPanelBase : MonoBehaviour, IBlockObserver, IUIPanelButtonObserver
     {
 
     }
-    public virtual void OnBlockChanged(IBlockSubject beltBlock)
-    {
 
-    }
     public virtual void OnButtonSelected(IUIPanelButtonSubject button) { }
 
 

@@ -28,7 +28,8 @@ namespace Backend
         private void Start()
         {
             _sellManager = SellManager.Instance;
-            _sellBlock.RegisterObserver(this);
+            if(_sellBlock is ISellBlockSubject sb)
+                sb.RegisterObserver(this);
         }
 
         private void Update()
@@ -67,6 +68,10 @@ namespace Backend
         {
             if (_observers.Contains(observer)) return;
             _observers.Add(observer);
+            if(observer is IBeltTrackLevelObserver bo)
+            {
+                bo.OnBeltTrackLevelChanged(this);
+            }
         }
         public void UnregisterObserver(IObserver observer)
         {

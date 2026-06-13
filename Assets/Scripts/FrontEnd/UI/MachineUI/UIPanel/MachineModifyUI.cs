@@ -1,7 +1,7 @@
 using Backend;
 using UnityEngine;
 
-public class MachineModifyUI : UIPanelBase
+public class MachineModifyUI : UIPanelBase, IMachineObserver
 {
     [SerializeField] private UIView _machineTypeTxt;
     [SerializeField] private UIView _levelTxt;
@@ -12,6 +12,7 @@ public class MachineModifyUI : UIPanelBase
     [SerializeField] private MachineModifyButton sellBtn;
     [SerializeField] private MachineModifyButton repairBtn;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
+
     private void Start()
     {
         levelupBtn?.RegisterObserver(this);
@@ -19,26 +20,42 @@ public class MachineModifyUI : UIPanelBase
         repairBtn?.RegisterObserver(this);
         Panel.SetActive(false);
     }
+    public override void OpenUI(BlockBase block)
+    {
+        base.OpenUI(block);
+        if(block is BeltBlock bb)
+        {
+            bb.Machine.RegisterObserver(this);
+        }
+    }
+    public override void CloseUI()
+    {
+        if(TargetBlock is BeltBlock bb && bb.Machine != null)
+        {
+
+            bb.Machine.UnregisterObserver(this);
+        }
+        base.CloseUI();
+    }
     private void OnDestroy()
     {
         levelupBtn?.UnregisterObserver(this);
         sellBtn?.UnregisterObserver(this);
         repairBtn?.UnregisterObserver(this);
     }
-    public override void OnBlockChanged(IBlockSubject beltBlock)
+    public void OnMachineChanged(IMachineSubject machine)
     {
-        base.OnBlockChanged (beltBlock);
-        BeltBlock bb = beltBlock as BeltBlock;
-        UIUpdateArgs type = new TextUpdateArgs(bb.MachineName);
-        UIUpdateArgs level = new TextUpdateArgs(bb.MachineLevel.ToString());
-        UIUpdateArgs pay = new TextUpdateArgs(bb.MachineLevelUpPrice.ToString());
+        Machine bb = machine as Machine;
+        UIUpdateArgs type = new TextUpdateArgs(bb.GetMachineType().ToString());
+        UIUpdateArgs level = new TextUpdateArgs(bb.Level.ToString());
+        UIUpdateArgs pay = new TextUpdateArgs(bb.LevelUpPrice.ToString());
         _machineTypeTxt.SetValue(type);
         _levelTxt.SetValue(level);
         _levelUpPayTxt.SetValue(pay);
-        _hpGauge?.SetValue(new SliderUpdateArgs(bb.MachineHpRatio, 1f));
-        _repairPayTxt?.SetValue(new TextUpdateArgs(bb.MachineRepairPrice.ToString()));
-        levelupBtn?.SetInteractable(bb.MachineCanLevelUp);
-        repairBtn?.SetInteractable(bb.MachineCanRepair);
+        _hpGauge?.SetValue(new SliderUpdateArgs(bb.HpRatio, 1f));
+        _repairPayTxt?.SetValue(new TextUpdateArgs(Machine.RepairPrice.ToString()));
+        levelupBtn?.SetInteractable(bb.CanLevelUp());
+        repairBtn?.SetInteractable(bb.CanRepair());
     }
 
     public override void OnButtonSelected(IUIPanelButtonSubject button)

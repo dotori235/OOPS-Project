@@ -1,6 +1,7 @@
+using Backend;
 using UnityEngine;
 
-public class TrackModifyUI : UIPanelBase
+public class TrackModifyUI : UIPanelBase, IBeltTrackLevelObserver
 {
     [SerializeField] private UIView _trackLevelTxt;
     [SerializeField] private UIView _trackLevelUpPriceTxt;
@@ -14,16 +15,32 @@ public class TrackModifyUI : UIPanelBase
     {
         _trackLevelUpBtn?.UnregisterObserver(this);
     }
-    public override void OnBlockChanged(IBlockSubject beltBlock)
+    public override void OpenUI(BlockBase block)
     {
-        base.OnBlockChanged(beltBlock);
-        
-        TrackBlock trackBlock = beltBlock as TrackBlock;
-        UIUpdateArgs level = new TextUpdateArgs(trackBlock.TrackLevel.ToString());
-        UIUpdateArgs pay = new TextUpdateArgs(trackBlock.TrackLevelUpPrice.ToString());
+        base.OpenUI(block);
+        if(block is TrackBlock tb)
+        {
+            tb.BeltTrack.RegisterObserver(this);
+        }
+    }
+    public override void CloseUI()
+    {
+        if(TargetBlock is TrackBlock tb)
+        {
+            tb.BeltTrack.UnregisterObserver(this);
+        }
+        base.CloseUI();
+    }
+
+public void OnBeltTrackLevelChanged(IBeltTrackLevelSubject belt)
+    {
+        BeltTrack trackBlock = belt as BeltTrack;
+        UIUpdateArgs level = new TextUpdateArgs(trackBlock.Level.ToString());
+        UIUpdateArgs pay = new TextUpdateArgs(trackBlock.LevelUpPrice.ToString());
         _trackLevelTxt.SetValue(level);
         _trackLevelUpPriceTxt.SetValue(pay);
     }
+
     public override void OnButtonSelected(IUIPanelButtonSubject button)
     {
         if(button is TrackModifyButton_LevelUp tlBtn)

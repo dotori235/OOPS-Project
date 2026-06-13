@@ -42,7 +42,6 @@ public class BeltBlock : BlockBase
             GameObject go = Instantiate(MachineManager.Instance.GetMachine(type));
             _machine = go.GetComponent<Machine>();
             go.transform.position = transform.position;
-            NotifyBlock();
             return true;
         }
         return false;
@@ -63,7 +62,6 @@ public class BeltBlock : BlockBase
         if (PayMoney(pay))
         {
             _machine.LevelUp();
-            NotifyBlock();
             return true;
         }
         return false;
@@ -77,7 +75,6 @@ public class BeltBlock : BlockBase
         if (PayMoney(pay))
         {
             _machine.Repair();
-            NotifyBlock();
             return true;
         }
         return false;

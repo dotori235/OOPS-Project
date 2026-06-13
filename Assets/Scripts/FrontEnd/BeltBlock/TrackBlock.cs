@@ -5,6 +5,7 @@ public class TrackBlock : BlockBase
 {
     private BeltTrack _beltTrack;
     private FactoryStatus _factoryStatus;
+    public BeltTrack BeltTrack { get => _beltTrack; private set => _beltTrack = value;  }
     private void Awake()
     {
         _beltTrack = GetComponent<BeltTrack>();
@@ -25,7 +26,6 @@ public class TrackBlock : BlockBase
         if (PayMoney(_beltTrack.LevelUpPrice))
         {
             _beltTrack.LevelUp();
-            NotifyBlock();
         }
 
     }

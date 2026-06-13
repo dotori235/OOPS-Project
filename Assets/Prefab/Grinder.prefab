@@ -82,3 +82,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Backend.Grinder
   _upgradeInterval: 1
+  _maxHp: 100
+  _hpLossRate: 0.01
+  _minUpgradableHp: 30
