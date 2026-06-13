@@ -1,50 +1,123 @@
 # OOPS-Project
 
-Unity로 만드는 공장 시뮬레이션 게임입니다. 벨트 위로 흐르는 아이템을 기계로 가공해
-스탯(공격력·내구도·화려함)을 올리고, 판매 수익으로 벨트와 기계를 업그레이드하면서
-라운드 목표를 달성합니다. 파산 게이지가 가득 차면 게임 오버입니다.
+A factory simulation game built with Unity. Items flow along a conveyor belt;
+you place machines to process them and raise their stats (Attack Power,
+Durability, Splendor), then sell them for profit and reinvest in better belts
+and machines to hit each round's target. If the bankruptcy gauge fills up, it's
+game over.
 
-## 개발 환경
+## Tech
 
 - Unity 6.3 LTS (6000.3.x)
 - C#
 
-## 핵심 루프
+## Getting Started
+
+1. Open the project in Unity 6.3 LTS.
+2. Open the scene `Assets/Scenes/FrontEnd.unity` (build index 0).
+3. Press **Play**.
+
+## Core Loop
 
 ```
-아이템 스폰 → 벨트 이동 → 기계 가공(스탯 강화) → 판매 → 라운드 정산 → 업그레이드
+spawn item → belt moves it → machine processes (boosts a stat) → sell → round payout → upgrade
 ```
 
-## 폴더 구조
+## Controls
 
-| 경로 | 내용 |
+| Input | Action |
 |---|---|
-| `Assets/Scripts/Backend/` | 게임 로직 (스탯, 벨트, 기계, 판매, 라운드, 게임 흐름 FSM) |
-| `Assets/Scripts/FrontEnd/` | UI·입력·씬 블록 (Observer 패턴으로 백엔드와 연결) |
-| `Assets/Scripts/DESIGN.md` | 설계 결정 기록 |
-| `docs/uml/` | 자동 생성된 UML (SVG/PNG) |
+| **Left mouse click** | Select a block (machine slot / track / seller). Opens its panel. |
+| Click the same block again / click empty space | Deselect and close the panel. |
+| **A** / **D** | Move the camera left / right. |
+| **Space** | Reset the camera to its starting position. |
+| Pause / Resume button | Toggle pause (also controls game speed). |
+| Time-scale slider | Adjust game speed while playing. |
+| Restart button | Reload the scene and start over. |
 
-## 설계 문서
+Clicking a block opens a context panel:
 
-- [DESIGN.md](Assets/Scripts/DESIGN.md) — 레이어 구조와 설계 결정
-- [UML.pdf](UML.pdf) — 전체 다이어그램 통합 PDF (벡터)
+- **Empty machine slot** → *Machine Select* panel: install a Grinder, Welder, or Painter.
+- **Slot with a machine** → *Machine Modify* panel: see the HP gauge and prices, then **Level Up**, **Repair**, or **Sell** the machine. The Level Up / Repair buttons grey out when the action isn't currently possible.
+- **Track block** → *Track Modify* panel: level the belt up (adds one more machine tile).
+- **Seller (end of belt)** → no panel; it's where finished items are sold automatically.
+
+## How to Play
+
+### Machines
+
+Place a machine on a belt tile. As an item passes over it, the machine boosts one stat:
+
+| Machine | Boosts | Can cause defects |
+|---|---|---|
+| **Grinder** | Attack Power | Yes |
+| **Welder** | Durability | No |
+| **Painter** | Splendor | Yes |
+
+- A **defective** item is worth no income — selling it instead applies a **fine** (proportional to its value).
+- Leveling a machine up increases how much it boosts per item and how fast it works.
+
+### Machine durability (HP)
+
+- Every item a machine processes **wears its HP down** — less at higher levels, and **no wear once the machine reaches level 5** (so a maxed machine runs maintenance-free).
+- At **0 HP the machine stops processing**. If HP falls below the upgrade threshold, you **can't level it up until you Repair** it.
+- **Repair** restores HP to full for a fixed cost.
+
+### Belt & track
+
+- The belt has a fixed number of machine tiles plus a **seller tile** at the end.
+- Leveling the **track** up adds another machine tile, giving you more processing slots.
+
+### Rounds
+
+- Each round sets a **target average Attack Power** and a time limit.
+- When the round ends, if the average AP of the items you sold meets the target you earn a **reward**; if not, you take a **penalty**.
+
+### Money & game over
+
+- Money may go **negative** (overdraft). While money is below zero, the **bankruptcy gauge** rises over time; while you're in the black it slowly recovers.
+- When the bankruptcy gauge reaches **100%, it's game over**.
+
+### Economy (default costs)
+
+| Action | Cost |
+|---|---|
+| Install machine | 200 |
+| Level up machine | level × 100 |
+| Repair machine | 50 (fixed) |
+| Level up track | level × 500 |
+
+## Project Structure
+
+| Path | Contents |
+|---|---|
+| `Assets/Scripts/Backend/` | Game logic (stats, belt, machines, selling, rounds, game-flow FSM, machine commands) |
+| `Assets/Scripts/FrontEnd/` | UI, input, and scene blocks (wired to the backend via the Observer pattern) |
+| `Assets/Scripts/DESIGN.md` | Design decisions and layer architecture |
+| `docs/uml/` | Auto-generated UML (SVG/PNG) |
+
+## Design Docs
+
+- [DESIGN.md](Assets/Scripts/DESIGN.md) — layer structure and design decisions
+- [UML.pdf](UML.pdf) — all diagrams combined into one vector PDF
 
 ## UML
 
-`.puml` 수정을 push하면 GitHub Actions가 아래 다이어그램을 자동 갱신합니다.
+Pushing changes to the `.puml` sources triggers a GitHub Actions workflow that
+regenerates the diagrams below.
 
 ### Backend
 
 ![Backend UML](docs/uml/BACKEND.svg)
 
-### FrontEnd 1/3 — Observer 브리지 & UI 위젯
+### FrontEnd 1/3 — Observer bridge & UI widgets
 
 ![FrontEnd View UML](docs/uml/FRONTEND_VIEW.svg)
 
-### FrontEnd 2/3 — 씬 블록 · 입력 · 기계 데이터
+### FrontEnd 2/3 — Scene blocks · input · machine data
 
 ![FrontEnd Block UML](docs/uml/FRONTEND_BLOCK.svg)
 
-### FrontEnd 3/3 — UI 패널 & 버튼
+### FrontEnd 3/3 — UI panels & buttons
 
 ![FrontEnd Panel UML](docs/uml/FRONTEND_PANEL.svg)
