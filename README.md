@@ -6,6 +6,21 @@ Durability, Splendor), then sell them for profit and reinvest in better belts
 and machines to hit each round's target. If the bankruptcy gauge fills up, it's
 game over.
 
+## Download & Play
+
+Prebuilt **Windows** builds are published on the
+[Releases page](https://github.com/dotori235/OOPS-Project/releases).
+
+1. Download `OOPS_FactorySimulation_Windows.zip` from the
+   [latest release](https://github.com/dotori235/OOPS-Project/releases/latest)
+   (currently [v0.1.0](https://github.com/dotori235/OOPS-Project/releases/tag/v0.1.0)).
+2. Extract the zip anywhere.
+3. Run `OOPS_FactorySimulation.exe`.
+
+Then see [Controls](#controls) and [How to Play](#how-to-play) below.
+
+> Want to build or modify the game yourself? See [Getting Started](#getting-started).
+
 ## Tech
 
 - Unity 6.3 LTS (6000.3.x)
