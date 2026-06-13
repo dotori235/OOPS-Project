@@ -10,7 +10,7 @@ public interface IMachineCommand
 public class LevelUpCommand : IMachineCommand
 {
     public string CommandName => "LevelUp";
-    public float GetPrice(Machine machine) => machine.Level * Machine.LevelUpPriceCoeff;
+    public float GetPrice(Machine machine) => machine.LevelUpPrice;
     public bool CanExecute(Machine machine) => machine != null && machine.CanLevelUp();
     public void Execute(Machine machine) => machine.LevelUp();
 }

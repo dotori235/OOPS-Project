@@ -50,8 +50,6 @@ class BeltBlock << MonoBehaviour >> {
   -_machine: Machine
   --
   +Machine: Machine <<get, set>>
-  +MachineName: string <<get>>
-  +MachineLevel: float <<get>>
   +MachineSellPrice: float <<get>>
   --
   +UIType(): BlockUIType
@@ -64,9 +62,9 @@ class BeltBlock << MonoBehaviour >> {
 note bottom of BeltBlock
   ExecuteCommand() is the common machine-action path: checks
   command.CanExecute, pays command.GetPrice via PayMoney, then
-  command.Execute (see IMachineCommand in BACKEND.puml). The old
-  MachineLevelUp()/MachineRepair() are commented out; price/HP/
-  can-* getters are now read off Machine directly by the panel.
+  command.Execute (see IMachineCommand in BACKEND.puml). Price/HP/
+  level are read off Machine directly (via IMachineSubject) by the
+  panel, so BeltBlock no longer mirrors them.
 end note
 
 class TrackBlock << MonoBehaviour >> {

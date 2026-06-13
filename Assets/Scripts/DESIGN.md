@@ -92,7 +92,7 @@ RoundManager/SellManager의 구현 선언을 삭제했다.
 > **PR #13 정리**: 상태 변경을 `SetValue(type, Operation, value)`로 우회하던 헬퍼를 제거하고,
 > `ModifyMoney`/`UpdateBankruptcyBar`/`ResetStatus`가 프로퍼티를 직접 갱신한 뒤
 > `NotifyFactoryStatus`를 호출하도록 단순화했다(돈은 `Mathf.Round`로 표시값 정리).
-> 그 결과 `Operation` enum은 호출처가 사라진 죽은 코드가 되었다 (아래 "알려진 어긋남" 참고).
+> 그 결과 호출처가 사라진 `Operation` enum(`Operation.cs`)은 이후 제거되었다.
 
 ### 6. Machine Configure(BeltTrack) 동적 초기화 (폐기 — refactor/oop-solid Phase 3)
 
@@ -166,8 +166,10 @@ BeltBlock + MachineManager + 패널 UI가 대체 완료한 죽은 경로라 전�
 ### 11. 기계 HP·수리 및 실시간 상태 통지
 
 **결정**: `Machine`에 내구도(HP)를 둔다. HP는 `_maxHp`(기본 100)에서 시작하고,
-**아이템을 1건 가공할 때마다**(`UpgradeItem`) `_hp -= _maxHp × _hpLossRate × (5 − _level)`만큼
-닳는다(`_hpLossRate` 기본 0.01). 레벨이 높을수록 가공당 마모가 작다. `_hp <= 0`이면
+**아이템을 1건 가공할 때마다**(`UpgradeItem` → `ApplyWear`) HP가
+`_maxHp × _hpLossRate × max(0, _wearFreeLevel − _level)`만큼 닳는다(`_hpLossRate` 기본 0.01,
+`_wearFreeLevel` 기본 5). 레벨이 높을수록 가공당 마모가 작고, `_wearFreeLevel` 이상에서는 마모가
+없다. 마모량은 0으로 clamp되어 HP가 역으로 증가하지 않으며 HP 하한은 0이다. `_hp <= 0`이면
 `OnTriggerStay`의 가공이 멈춘다(고장). `_hp < _minUpgradableHp`(기본 30)이면 `CanLevelUp()`이
 false가 되어 업그레이드가 막힌다. `Repair()`는 `CanRepair()`(=`_hp < _maxHp`)일 때만 HP를
 `_maxHp`로 복구하고, 비용은 고정값 `RepairPrice`(static, 기본 50). `LevelUp()`은 레벨·강화량·
@@ -345,27 +347,16 @@ Machine       ──(IMachineSubject, 가공/레벨업/수리 시)─► Machine
 
 1. **백엔드 → FrontEnd 역방향 의존**: `BeltTrack`이 FrontEnd의 `BlockBase`(`_sellBlock`)를
    SerializeField로 참조하고 `ISellBlockObserver`를 구현한다. `RoundManager`도 FrontEnd의
-   `UIUpdateArgs`/`RoundParameters`를 직접 생성한다. PR #13에서 `GameManager`도 FrontEnd의
-   `IObserver`/`IGameStateSubject`(ObserverPattern)에 의존하게 되어 같은 어긋남이 확대됐다.
-   브리지 인터페이스와 UIUpdateArgs가 FrontEnd 폴더에 있어 백엔드가 UI 레이어 코드 없이
-   컴파일되지 않는다 — 중립 위치(예: `Assets/Scripts/Common/`)로 옮기는 정리가 필요.
-   폴더 재편이므로 승인 후 진행할 것
+   `UIUpdateArgs`/`RoundParameters`를 직접 생성한다. `GameManager`(IGameStateSubject)와
+   `Machine`(IMachineSubject)도 FrontEnd의 `ObserverPattern` 인터페이스를 구현해 같은 어긋남이
+   누적돼 있다. 브리지 인터페이스와 UIUpdateArgs가 FrontEnd 폴더에 있어 백엔드가 UI 레이어 코드
+   없이 컴파일되지 않는다 — `ISubject`/`IObserver` 계열과 UIUpdateArgs를 중립 위치(예:
+   `Assets/Scripts/Common/`)로 옮기는 정리가 필요. 폴더 재편이므로 승인 후 진행할 것
 2. **싱글톤 제한 위반**: 원칙은 FactoryStatus, EventBus 둘만인데
    `RoundManager.Instance`, `SellManager.Instance`, `MachineManager.Instance`가 추가됨.
    사용처가 있어 단순 삭제 불가(RoundUI, BeltTrack, BeltBlock이 의존) — 인스펙터 참조로
    바꾸려면 씬 재연결 필요
-3. **`Operation` enum 죽은 코드**: PR #13에서 유일한 사용처 `FactoryStatus.SetValue`가
-   제거되면서 `Operation`(`Operation.cs`)은 호출처가 없는 죽은 코드가 됐다. 삭제 후보지만
-   파일/타입 제거이므로 별도 정리 작업에서 처리할 것
-4. **`BeltBlock` 죽은 코드/미사용 게터**: Command 패턴 도입(#12) 후 `MachineLevelUp()`/
-   `MachineRepair()`는 주석 처리된 채 남아 있고, 패널이 `Machine`을 직접 구독·`IMachineCommand`로
-   가격을 얻게 되면서 `MachineLevelUpPrice`/`MachineHpRatio`/`MachineCanLevelUp`/`MachineCanRepair`/
-   `MachineRepairPrice` 게터는 호출처가 없다. 정리 시 함께 삭제 검토(`MachineSellPrice`는
-   `SellMachine`에서 여전히 사용).
-5. **가공 마모식의 레벨 의존**: `UpgradeItem`의 `_hp -= _maxHp × _hpLossRate × (5 − _level)`는
-   `_level >= 5`에서 마모가 0 또는 음수(HP 증가)가 된다. 의도된 상한(레벨 5에서 무마모)인지,
-   `Mathf.Max(0, …)` 클램프가 필요한지 게임플레이 튜닝 시 확인할 것.
-> 1파일 1클래스 위반(Operation/UIUpdateArgs 계열/RoundParameters/BlockUIType,
+> 1파일 1클래스 위반(UIUpdateArgs 계열/RoundParameters/BlockUIType,
 > `Command.cs`의 IMachineCommand+LevelUpCommand+RepairCommand 동거)과
 > 불필요/위험 using(`UnityEditor.UIElements`, NUnit, Newtonsoft 등)은
 > refactor/oop-solid Phase 0에서, `GameManager.Awake()`의 `FindAnyObjectByType` 검색은

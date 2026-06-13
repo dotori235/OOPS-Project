@@ -76,12 +76,6 @@ enum FactoryStatusType {
   BankruptcyBar
 }
 
-enum Operation {
-  Addition
-  Multiplication
-  Assignment
-}
-note bottom of Operation : currently unused — FactoryStatus.SetValue\nwas removed in favor of direct property + Notify
 
 ' ══════════════════════════════════════════════
 ' EVENTS  (Pure C#)
@@ -204,6 +198,7 @@ abstract class Machine << MonoBehaviour >> {
   -_maxHp: float <<SerializeField>>
   -_hpLossRate: float <<SerializeField>>
   -_minUpgradableHp: float <<SerializeField>>
+  -_wearFreeLevel: int <<SerializeField>>
   -_level: int
   -_cooldown: float
   -_upgradeAmount: float
@@ -229,6 +224,7 @@ abstract class Machine << MonoBehaviour >> {
   +GetMachineType(): MachineType
   #SetMachineType(type: MachineType): void
   -UpgradeItem(item: Item): void
+  -ApplyWear(): void
   -OnTriggerStay(other: Collider): void
   +RegisterObserver(o: IObserver): void
   +UnregisterObserver(o: IObserver): void
@@ -243,11 +239,13 @@ note bottom of Machine
   FRONTEND_VIEW.puml); NotifyMachine() pushes OnMachineChanged to
   observers (MachineModifyUI) on wear / level-up / repair.
   HP: initialized to _maxHp in Awake (subclasses call base.Awake).
-  Each item processed in UpgradeItem() wears HP by
-  _maxHp * _hpLossRate * (5 - _level) (higher level wears less);
-  OnTriggerStay machining runs only while _hp > 0. LevelUp() leaves
-  HP alone and is gated by CanLevelUp() (_hp >= _minUpgradableHp).
-  Repair() restores _hp to _maxHp, gated by CanRepair() (_hp < _maxHp).
+  ApplyWear() (per processed item) lowers HP by
+  _maxHp * _hpLossRate * max(0, _wearFreeLevel - _level)
+  (higher level wears less, none at/after _wearFreeLevel),
+  clamped at 0; OnTriggerStay machining runs only while _hp > 0.
+  LevelUp() leaves HP alone and is gated by CanLevelUp()
+  (_hp >= _minUpgradableHp). Repair() restores _hp to _maxHp,
+  gated by CanRepair() (_hp < _maxHp).
 end note
 
 class Grinder << MonoBehaviour >> {
