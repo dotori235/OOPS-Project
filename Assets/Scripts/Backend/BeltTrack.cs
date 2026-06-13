@@ -68,7 +68,7 @@ namespace Backend
         {
             if (_observers.Contains(observer)) return;
             _observers.Add(observer);
-            if(observer is IBeltTrackLevelObserver bo)
+            if(observer is IBeltTrackLevelObserver bo && _level > 1)
             {
                 bo.OnBeltTrackLevelChanged(this);
             }
