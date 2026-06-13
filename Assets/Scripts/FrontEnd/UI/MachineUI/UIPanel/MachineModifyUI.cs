@@ -11,6 +11,8 @@ public class MachineModifyUI : UIPanelBase, IMachineObserver
     [SerializeField] private MachineModifyButton levelupBtn;
     [SerializeField] private MachineModifyButton sellBtn;
     [SerializeField] private MachineModifyButton repairBtn;
+    private readonly IMachineCommand _levelUpCmd = new LevelUpCommand();
+    private readonly IMachineCommand _repairCmd = new RepairCommand();
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
     private void Start()
@@ -46,23 +48,26 @@ public class MachineModifyUI : UIPanelBase, IMachineObserver
     public void OnMachineChanged(IMachineSubject machine)
     {
         Machine bb = machine as Machine;
-        UIUpdateArgs type = new TextUpdateArgs(bb.GetMachineType().ToString());
-        UIUpdateArgs level = new TextUpdateArgs(bb.Level.ToString());
-        UIUpdateArgs pay = new TextUpdateArgs(bb.LevelUpPrice.ToString());
-        _machineTypeTxt.SetValue(type);
-        _levelTxt.SetValue(level);
-        _levelUpPayTxt.SetValue(pay);
+        if (bb == null) return;
+
+        _machineTypeTxt.SetValue(new TextUpdateArgs(bb.GetMachineType().ToString()));
+        _levelTxt.SetValue(new TextUpdateArgs(bb.Level.ToString()));
         _hpGauge?.SetValue(new SliderUpdateArgs(bb.HpRatio, 1f));
-        _repairPayTxt?.SetValue(new TextUpdateArgs(Machine.RepairPrice.ToString()));
-        levelupBtn?.SetInteractable(bb.CanLevelUp());
-        repairBtn?.SetInteractable(bb.CanRepair());
+
+        _levelUpPayTxt.SetValue(new TextUpdateArgs(_levelUpCmd.GetPrice(bb).ToString()));
+        _repairPayTxt?.SetValue(new TextUpdateArgs(_repairCmd.GetPrice(bb).ToString()));
+
+        levelupBtn?.SetInteractable(_levelUpCmd.CanExecute(bb));
+        repairBtn?.SetInteractable(_repairCmd.CanExecute(bb));
+
+
     }
 
     public override void OnButtonSelected(IUIPanelButtonSubject button)
     {
         if(button is MachineModifyButton_Levelup levelupBtn)
         {
-            (TargetBlock as BeltBlock).MachineLevelUp();
+            (TargetBlock as BeltBlock).ExecuteCommand(_levelUpCmd);
         }
         if (button is MachineModifyButton_Sell sellBtn)
         {
@@ -71,7 +76,7 @@ public class MachineModifyUI : UIPanelBase, IMachineObserver
         }
         if (button is MachineModifyButton_Repair repairBtn)
         {
-            (TargetBlock as BeltBlock).MachineRepair();
+            (TargetBlock as BeltBlock).ExecuteCommand(_repairCmd);
         }
         //CloseUI();
     }

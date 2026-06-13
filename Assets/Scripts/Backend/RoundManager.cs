@@ -79,6 +79,7 @@ namespace Backend
             _timer = 0f;
             _soldItemAPs.Clear();
             Debug.Log($"[RoundManager] Round {_roundNumber} started! Target AP: {_apThreshold}");
+            DebugLog.Instance.Print($"[RoundManager] Round {_roundNumber} started! Target AP: {_apThreshold}");
             NotifyRound();
         }
 
@@ -91,13 +92,16 @@ namespace Backend
             if (passed)
             {
                 Debug.Log($"[RoundManager] Round {_roundNumber} passed! Avg AP: {avgAP} >= Threshold: {_apThreshold}. Reward: +{_bonus}");
+                DebugLog.Instance.Print($"[RoundManager] Round {_roundNumber} passed! Avg AP: {avgAP} >= Threshold: {_apThreshold}. Reward: +{_bonus}");
                 FactoryStatus.GetInstance().ModifyMoney(_bonus);
             }
             else
             {
-                Debug.Log($"[RoundManager] Round {_roundNumber} failed! Avg AP: {avgAP} < Threshold: {_apThreshold}. Penalty: +{_penalty} Bankruptcy Bar");
+                float penalty = (avgAP - _apThreshold) * (50f+_roundNumber*50f);
+                Debug.Log($"[RoundManager] Round {_roundNumber} failed! Avg AP: {avgAP} < Threshold: {_apThreshold}. Penalty: {penalty} Money");
+                DebugLog.Instance.Print($"[RoundManager] Round {_roundNumber} failed! Avg AP: {avgAP} < Threshold: {_apThreshold}. Penalty: {penalty} Money");
                 //FactoryStatus.GetInstance().UpdateBankruptcyBar(_penalty);
-                FactoryStatus.GetInstance().ModifyMoney(-_bonus * 0.5f);
+                FactoryStatus.GetInstance().ModifyMoney(penalty);
             }
 
             EventBus.GetInstance().Publish(new RoundEndEvent(avgAP, passed));

@@ -10,6 +10,7 @@ namespace Backend
         {
             
             Debug.Log("[GameStateMachine] Playing.");
+            DebugLog.Instance.Print("[GameStateMachine] Playing.");
         }
         
         public void Update() { Time.timeScale = _timeScale; }

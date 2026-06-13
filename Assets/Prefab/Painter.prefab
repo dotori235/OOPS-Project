@@ -8,6 +8,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 511753745872470611, guid: e6e561c9a0af05b4f803e3dba573f902, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 511753745872470611, guid: e6e561c9a0af05b4f803e3dba573f902, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1615900400713215281, guid: e6e561c9a0af05b4f803e3dba573f902, type: 3}
+      propertyPath: _machine
+      value: 
+      objectReference: {fileID: 6158758829773199773}
     - target: {fileID: 1709272954858860235, guid: e6e561c9a0af05b4f803e3dba573f902, type: 3}
       propertyPath: m_Name
       value: Painter

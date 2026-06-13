@@ -8,6 +8,7 @@ namespace Backend
         {
             Time.timeScale = 0f;
             Debug.Log("[GameStateMachine] Paused.");
+            DebugLog.Instance.Print("[GameStateMachine] Paused.");
         }
 
         public void Update() { }

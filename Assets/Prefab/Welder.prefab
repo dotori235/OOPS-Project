@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1615900400713215281, guid: e6e561c9a0af05b4f803e3dba573f902, type: 3}
+      propertyPath: _machine
+      value: 
+      objectReference: {fileID: 8599696476669103549}
     - target: {fileID: 1709272954858860235, guid: e6e561c9a0af05b4f803e3dba573f902, type: 3}
       propertyPath: m_Name
       value: Welder

@@ -7,6 +7,7 @@ public class GameStateUI : MonoBehaviour, IGameStateObserver
     [SerializeField] private GameManager _gameManager;
     [SerializeField] private UIView _prBtnTxt;
     [SerializeField] private UIView _timeScaleTxt;
+    [SerializeField] private UIView _gameOverTxt;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -23,6 +24,7 @@ public class GameStateUI : MonoBehaviour, IGameStateObserver
     public void OnGameStateChanged(IGameState state)
     {
         string s = "";
+        if(state is GameOverState) _gameOverTxt.gameObject.SetActive(true);
         if (state is PlayingState) s = "Pause";
         else if (state is PausedState) s = "Resume";
         UIUpdateArgs arg = new TextUpdateArgs(s);

@@ -53,6 +53,20 @@ public class BeltBlock : BlockBase
         Destroy( _machine.gameObject );
         _machine = null;
     }
+    public bool ExecuteCommand(IMachineCommand command)
+    {
+        if (_machine == null || command == null) return false;
+        if (!command.CanExecute(_machine)) return false;
+
+        float pay = command.GetPrice(_machine);
+        if (PayMoney(pay))
+        {
+            command.Execute(_machine);
+            return true;
+        }
+        return false;
+    }
+    /*
     public bool MachineLevelUp()
     {
         // A worn machine must be repaired before leveling up — don't charge for a no-op.
@@ -78,7 +92,7 @@ public class BeltBlock : BlockBase
             return true;
         }
         return false;
-    }
+    }*/
     private bool PayMoney(float pay)
     {
         if (_factoryStatus.Money >= pay)
